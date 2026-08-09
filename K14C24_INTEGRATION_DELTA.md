@@ -1,6 +1,6 @@
 # K14.C24 integration delta
 
-K14.C24 is developed from frozen/qualified K14.C23. `K14C24_INTEGRATION.patch.gz` records the exact source delta from the frozen C23 integrated tree to the C24 integrated tree, excluding generated `build/`, `target/`, and `SOURCE_MANIFEST.sha256` artifacts.
+K14.C24 is developed from frozen/qualified K14.C23. `K14C24_INTEGRATION.patch.gz.b64` stores the exact gzip-compressed source delta from the frozen C23 integrated tree to the C24 integrated tree as base64 text for repository-safe transport. Decode it with `base64 -d` to recover `K14C24_INTEGRATION.patch.gz`. Generated `build/`, `target/`, and `SOURCE_MANIFEST.sha256` artifacts are excluded.
 
 Integrated C24 changes include:
 
