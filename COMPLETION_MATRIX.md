@@ -18,4 +18,7 @@ Trusted Radeon IP-base sources and first bounded live status-read path. QEMU qua
 Qualified/frozen. Exact generated GFX12 `SCRATCH_REG0` target rebind and bounded identity-write gate. Intentional-HALT QEMU harness termination is frozen into the baseline.
 
 ## K14.C22
-Qualified/frozen. First bounded reversible non-identity GFX12 `SCRATCH_REG0` mutation: internally derived one-bit probe, exact readback, mandatory original-value restoration, one bounded restore retry, and Radeon bus-master fencing. Fedora/QEMU qualification passed through `[C22OK]`, userspace handoff, `[QUAL]`, and intentional `[HALT]`; the harness terminated QEMU automatically. Arbitrary MMIO writes, firmware upload, command submission, BAR resizing, MM_INDEX fallback, and bus-master enable remain fenced.
+Qualified/frozen. First bounded reversible non-identity GFX12 `SCRATCH_REG0` mutation: internally derived one-bit probe, exact readback, mandatory original-value restoration, one bounded restore retry, and Radeon bus-master fencing.
+
+## K14.C23
+Qualified/frozen. Requires the C22-restored value to persist, then performs two distinct internally-derived one-bit probe/readback/restore cycles on the exact same checksum-backed `SCRATCH_REG0` target. Fedora/QEMU qualification passed through `[C23OK]`, userspace handoff, `[QUAL]`, and intentional `[HALT]`, with automatic QEMU termination. Arbitrary MMIO writes, caller-selected values/addresses, firmware upload, command submission, BAR resizing, MM_INDEX fallback, and bus-master enable remain fenced.
