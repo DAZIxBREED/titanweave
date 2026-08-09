@@ -602,6 +602,22 @@ _start:
 .c31_wait:
     TW_WRITE TW_CONSOLE_HANDLE, c31_wait, C31_WAIT_LEN
 .c31_done:
+    TW_WRITE TW_CONSOLE_HANDLE, k14c32_banner, K14C32_BANNER_LEN
+    mov rax, TW_SYS_NATIVE_GPU_C32_QUERY
+    xor rdi, rdi
+    int 0x80
+    test eax, 0x2000
+    jz .c32_wait
+    test al, 1
+    jz .c32_qemu
+    TW_WRITE TW_CONSOLE_HANDLE, c32_verified, C32_VERIFIED_LEN
+    jmp .c32_done
+.c32_qemu:
+    TW_WRITE TW_CONSOLE_HANDLE, c32_qemu_msg, C32_QEMU_LEN
+    jmp .c32_done
+.c32_wait:
+    TW_WRITE TW_CONSOLE_HANDLE, c32_wait, C32_WAIT_LEN
+.c32_done:
     mov rax, rbx
     test rax, rax
     jz .gpu_none
@@ -1336,4 +1352,21 @@ c31_verified:
     .ascii "[displayd] K14.C31 reference graphics/compute execution verified; physical Radeon queue programming remains separately gated"
 c31_verified_end:
 .equ C31_VERIFIED_LEN, c31_verified_end - c31_verified
+# K14.C32 production/stability + final K14 gate.
+k14c32_banner:
+    .ascii "[displayd] K14.C32 production/stability and final Radeon foundation online"
+k14c32_banner_end:
+.equ K14C32_BANNER_LEN, k14c32_banner_end - k14c32_banner
+c32_qemu_msg:
+    .ascii "[displayd] K14.C32 QEMU production gate verified: queue/memory stress, recovery+IRQ, graphics+compute/display+compute coexistence, scanout, telemetry, power, frozen GPU ABI, shader precache, multi-GPU inventory; physical Radeon stress separate"
+c32_qemu_msg_end:
+.equ C32_QEMU_LEN, c32_qemu_msg_end - c32_qemu_msg
+c32_wait:
+    .ascii "[displayd] K14.C32 final production/stability gate not qualified; K14 remains open and ForgeAudio must not begin"
+c32_wait_end:
+.equ C32_WAIT_LEN, c32_wait_end - c32_wait
+c32_verified:
+    .ascii "[displayd] K14.C32 production/stability foundation verified; physical-stress bit reports silicon evidence independently"
+c32_verified_end:
+.equ C32_VERIFIED_LEN, c32_verified_end - c32_verified
 

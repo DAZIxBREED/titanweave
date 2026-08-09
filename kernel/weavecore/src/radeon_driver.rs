@@ -144,3 +144,14 @@ pub fn mask_recovery_interrupt_route()->Result<(),&'static str>{
  if snapshot.irq_route_registered{kernel_runtime::with_runtime(|r|r.interrupts.mask(snapshot.irq_vector,snapshot.forge_device))?;}
  STATE.lock().irq_masked=true;Ok(())
 }
+
+/// C32 bounded software interrupt-handler stress. This exercises the actual
+/// Radeon driver interrupt handler accounting without programming Radeon IH/MSI
+/// hardware. The live hardware route is neither enabled nor reconfigured here.
+pub fn software_irq_stress(rounds:u32)->Result<u64,&'static str>{
+ if rounds<64||rounds>4096{return Err("C32 Radeon software IRQ stress rounds outside bound")}
+ let snapshot=state();let device=if snapshot.forge_device.0!=0{snapshot.forge_device}else{DeviceId(0xc032)};let vector=if snapshot.irq_vector!=0{snapshot.irq_vector}else{0xf0};let before=IRQ_EVENTS.load(Ordering::Relaxed);
+ for _ in 0..rounds{irq_handler(vector,device)?}
+ let after=IRQ_EVENTS.load(Ordering::Relaxed);if after.saturating_sub(before)!=u64::from(rounds){return Err("C32 Radeon software IRQ stress accounting mismatch")}
+ Ok(after)
+}

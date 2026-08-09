@@ -2,7 +2,7 @@ use crate::abi::*;
 use crate::handles::{Handle, HandleObject, RIGHT_READ, RIGHT_WRITE};
 use crate::ipc::MAX_MESSAGE_BYTES;
 use crate::user::UserTrapFrame;
-use crate::{display, gpu_runtime, native_gpu, native_gpu_binding, native_gpu_c2, native_gpu_c3, native_gpu_c4, native_gpu_c5, native_gpu_c6, native_gpu_c7, native_gpu_c8, native_gpu_c9, native_gpu_c10, native_gpu_c11, native_gpu_c12, native_gpu_c13, native_gpu_c14, native_gpu_c15, native_gpu_c16, native_gpu_c17, native_gpu_c18, native_gpu_c19, native_gpu_c20, native_gpu_c21, native_gpu_c22, native_gpu_c23, native_gpu_c24, native_gpu_c25, native_gpu_c26, native_gpu_c27, native_gpu_c28, native_gpu_c29, native_gpu_c30, native_gpu_c31, namespace, percpu, process, serial, shared_memory, vfs};
+use crate::{display, gpu_runtime, native_gpu, native_gpu_binding, native_gpu_c2, native_gpu_c3, native_gpu_c4, native_gpu_c5, native_gpu_c6, native_gpu_c7, native_gpu_c8, native_gpu_c9, native_gpu_c10, native_gpu_c11, native_gpu_c12, native_gpu_c13, native_gpu_c14, native_gpu_c15, native_gpu_c16, native_gpu_c17, native_gpu_c18, native_gpu_c19, native_gpu_c20, native_gpu_c21, native_gpu_c22, native_gpu_c23, native_gpu_c24, native_gpu_c25, native_gpu_c26, native_gpu_c27, native_gpu_c28, native_gpu_c29, native_gpu_c30, native_gpu_c31, native_gpu_c32, namespace, percpu, process, serial, shared_memory, vfs};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn weave_syscall_dispatch(frame: *mut UserTrapFrame) -> *mut UserTrapFrame {
@@ -275,6 +275,12 @@ pub extern "C" fn weave_syscall_dispatch(frame: *mut UserTrapFrame) -> *mut User
         SYS_NATIVE_GPU_C31_QUERY => {
             let status = native_gpu_c31::packed_status();
             serial::println(format_args!("[SHELL] native gpu C31 graphics+compute execution status: packed={:#x}", status));
+            unsafe { (*frame).rax = status };
+            frame
+        }
+        SYS_NATIVE_GPU_C32_QUERY => {
+            let status = native_gpu_c32::packed_status();
+            serial::println(format_args!("[SHELL] native gpu C32 production/stability final status: packed={:#x}", status));
             unsafe { (*frame).rax = status };
             frame
         }

@@ -951,6 +951,18 @@ pub extern "C" fn weave_user_exit_resume(result: u64) -> ! {
     serial::println(format_args!(
         "[QUAL] K14.C31 graphics-compute-execution runtime reached intentional post-userspace halt"
     ));
+    serial::println(format_args!(
+        "[KERN] K14.C32 alive: queue and memory pressure stress, stuck-queue recovery, software IRQ/recovery stress, display+compute and graphics+compute coexistence, repeated scanout, multi-display framework, telemetry, power policy, frozen GPU ABI/capabilities, shader precache, and multi-GPU inventory operational"
+    ));
+    serial::println(format_args!(
+        "[QUAL] K14.C32 production-stability-final runtime reached intentional post-userspace halt"
+    ));
+    serial::println(format_args!(
+        "[K14DONE] Titanweave native Radeon driver foundation operational"
+    ));
+    serial::println(format_args!(
+        "[K15NEXT] K15 ForgeAudio is the next locked Titanweave milestone"
+    ));
     serial::println(format_args!("[HALT] BSP halted intentionally"));
     halt_forever();
 }

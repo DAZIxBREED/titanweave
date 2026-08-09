@@ -9,3 +9,7 @@ Root cause: the reference shader blobs begin with the literal bytes `TWSH`, whil
 Fix: define `TW_SHADER_MAGIC` from the actual wire bytes with `u32::from_le_bytes(*b"TWSH")`. This preserves the shader blob format and corrects only the parser constant. The C31 source test now validates the actual on-wire magic relationship instead of merely checking for shader symbols.
 
 C29 and C30 remain frozen and unchanged in authority. C31 runtime qualification remains pending until the corrected Fedora/QEMU run passes all C31 gates.
+
+## Post-fix qualification
+
+The corrected Fedora/QEMU rerun passed all C31 runtime gates on 2026-08-09. K14.C31 is now **QUALIFIED / FROZEN**; C32 is the next and final locked Radeon milestone.

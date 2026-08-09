@@ -9,8 +9,8 @@ This roadmap is authoritative for the remainder of K14. It must not be renamed, 
 - **K14.C28 — Memory + firmware + recovery** — **qualified/frozen**. VRAM manager, GTT/system memory, GPU VA groundwork, buffer backing/mapping, firmware validation/loading, reset/watchdog/recovery and required interrupt activation.
 - **K14.C29 — Rings + queues + fences + DMA** — **qualified/frozen**. Command rings, queue ownership, fences/synchronization, SDMA/DMA, bounded real command completion and submission validation.
 - **K14.C30 — Complete basic display engine** — **qualified/frozen**. Connector/EDID/mode discovery, display pipes, framebuffer scanout, modesetting, page flip, hotplug and multi-display foundation.
-- **K14.C31 — Graphics + compute execution** — **source-integrated; runtime qualification pending**. Graphics/compute queues, shader/resource upload, pipeline/command encoding, simple verified compute dispatch and graphics draw, shader-cache/precache hooks.
-- **K14.C32 — Production/stability + final K14** — concurrency/stress, reset recovery, VRAM pressure, display/compute coexistence, diagnostics, ABI freeze, multi-GPU groundwork and final Radeon qualification.
+- **K14.C31 — Graphics + compute execution** — **qualified/frozen**. Graphics/compute queues, shader/resource upload, pipeline/command encoding, verified compute dispatch and graphics draw, shader-cache/precache hooks.
+- **K14.C32 — Production/stability + final K14** — **source-integrated; runtime qualification pending**. Queue/memory/interrupt/recovery stress, display/compute and graphics/compute coexistence, repeated display stability, diagnostics, power policy, userspace GPU ABI/capability freeze, shader-precache freeze, multi-GPU enumeration groundwork, and final Radeon foundation qualification.
 
 After K14.C32 is qualified/frozen:
 

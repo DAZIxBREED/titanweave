@@ -64,6 +64,12 @@ mod radeon_compute;
 mod radeon_compute_caps;
 mod radeon_graphics;
 mod native_gpu_c31;
+mod radeon_telemetry;
+mod radeon_power;
+mod radeon_multigpu;
+mod radeon_gpu_abi;
+mod radeon_stability;
+mod native_gpu_c32;
 mod radeon_sdma_packets;
 mod radeon_ring;
 mod radeon_queue;
@@ -817,6 +823,15 @@ pub extern "C" fn weavecore_entry(boot_info_address: u64) -> ! {
             state.amd_present,state.c30_verified,state.shader_upload_verified,state.shader_cache_verified,state.precache_entries,state.command_encoding_verified,state.compute_queue_verified,state.compute_dispatch_verified,state.compute_elements,state.graphics_queue_verified,state.graphics_draw_verified,state.triangle_pixels,state.framebuffer_verified,state.reference_execution,state.physical_gpu_execution,state.qualified,state.fingerprint
         )),
         Err(error) => { serial::println(format_args!("[FAIL] K14.C31 graphics+compute execution failed: {error}")); halt_forever(); }
+    }
+    match native_gpu_c32::initialize(&mut allocator, boot_info) {
+        Ok(state) => {
+            serial::println(format_args!(
+                "[C32OK] K14.C32 production/stability + final K14: C31={} queues={} pressure={} recovery={} IRQ={} concurrency={} display={} multiGPU={} power={} telemetry={} precache={} ABI={} physical_stress={} qualified={} fingerprint={:#018x}",
+                state.c31_verified,state.queue_stress_verified,state.memory_pressure_verified,state.hang_recovery_verified,state.interrupt_stress_verified,state.display_compute_concurrency&&state.graphics_compute_concurrency,state.display_stress_verified,state.multi_gpu_enumeration_verified,state.power_policy_verified,state.telemetry_verified,state.shader_precache_frozen,state.userspace_abi_frozen,state.physical_stress_qualified,state.qualified,state.fingerprint
+            ));
+        },
+        Err(error) => { serial::println(format_args!("[FAIL] K14.C32 production/stability final failed: {error}")); halt_forever(); }
     }
     match vfs::log_directory(b"C:\\SYSTEM\\SERVICES") {
         Ok(count) => serial::println(format_args!(

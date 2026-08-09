@@ -98,4 +98,7 @@ Status: **qualified/frozen**. Fedora/QEMU passed the C30 display-engine qualific
 
 
 ## K14.C31 — Graphics + compute execution
-Status: **source-integrated; runtime qualification pending**. C31 adds owned shader/resource upload, command encoding, separate compute/graphics queues, verified compute output, verified graphics framebuffer draw, shader cache/precache and future compute-runtime capability hooks. Physical Radeon CP/GFX programming and native AMD ISA remain unclaimed.
+Status: **qualified/frozen**. Fedora/QEMU passed owned shader/resource upload, separate compute/graphics queues, vector-add compute verification, triangle draw/live framebuffer verification, timeline-fence retirement, shader cache/precache, userspace handoff, intentional HALT and the corrected `TWSH` wire-magic path. Physical Radeon CP/GFX programming and native AMD ISA remain independently gated.
+
+## K14.C32 — Production/stability + final K14
+Status: **source-integrated; runtime qualification pending**. C32 executes queue wrap/stress, stuck-queue reset, GTT pressure/reclaim with conditional VRAM pressure, software IRQ and recovery stress, display+compute and graphics+compute coexistence, repeated scanout, multi-display framework checks, PCI multi-GPU inventory, telemetry/performance diagnostics, software power policy, shader-precache freeze and userspace GPU ABI/capability freeze. QEMU must explicitly keep physical Radeon stress unqualified. Passing C32 freezes K14 and unlocks K15 ForgeAudio.

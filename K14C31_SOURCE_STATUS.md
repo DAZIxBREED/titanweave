@@ -1,8 +1,10 @@
 # Titanweave K14.C31 Source Status
 
-Status: **IMPLEMENTED / SOURCE-VALIDATED / RUNTIME QUALIFICATION PENDING**
+Status: **QUALIFIED / FROZEN**
 
 Frozen prerequisite: **K14.C30 QUALIFIED / FROZEN**.
+
+Fedora/QEMU runtime qualification passed on 2026-08-09.
 
 C31 implements owned shader upload, SHA-backed shader cache/precache, typed command encoding, separate compute/graphics queues, pipeline state, verified vector-add compute dispatch, verified triangle graphics draw into C30 scanout, live framebuffer presentation, timeline-fence retirement, and a stable future compute-runtime capability model.
 

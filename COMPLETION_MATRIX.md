@@ -8,7 +8,7 @@
 - K14.C1: qualified/frozen
 - K14.C2: qualified/frozen
 - K14.C3: source-integrated; QEMU staging qualification pending
-- K14.D: pending
+- K14.D: superseded by the locked C30-C32 closure; no separate K14.D milestone
 
 
 ## K14.C12
@@ -48,4 +48,7 @@ Qualified/frozen. Real GTT ring backing, FIFO submission lifecycle, GTT timeline
 Qualified/frozen. Fedora/QEMU passed the operational GOP-backed scanout, EDID/mode engine, connector/CRTC/plane ownership, double-buffer page flips, atomic rollback, hotplug bookkeeping, userspace handoff and intentional HALT. Native DCN/HPD is not falsely claimed.
 
 ## K14.C31 — Graphics + compute execution
-Source-integrated; runtime qualification pending. Owned shader upload/cache/precache, typed command encoding, separate compute/graphics queues, verified vector-add dispatch, triangle draw/live framebuffer present and timeline-fence retirement are operational through the Titanweave reference backend. Physical Radeon shader execution remains separately gated.
+Qualified/frozen. Fedora/QEMU verified owned shader upload/cache/precache, typed command encoding, separate compute/graphics queues, vector-add dispatch, triangle draw/live framebuffer present and timeline-fence retirement through the Titanweave reference backend. Physical Radeon shader execution remains separately gated.
+
+## K14.C32 — Production/stability + final K14
+Source-integrated; runtime qualification pending. Final queue/memory/interrupt/recovery stress, stuck-queue reset, display+compute and graphics+compute coexistence, repeated display stability, multi-display framework, PCI multi-GPU inventory, telemetry/performance diagnostics, software power policy, shader-precache freeze and syscall-43 userspace GPU ABI/capability freeze are implemented. QEMU physical-stress status remains explicitly false. Passing C32 completes/finalizes K14 before K15 ForgeAudio.
