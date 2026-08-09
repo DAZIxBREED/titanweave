@@ -23,8 +23,8 @@ jobs:
         run: |
           set -euo pipefail
           test -f .repo-import/c27-overlay.part-000
-          test -f .repo-import/c27-overlay.part-013
-          test ! -e .repo-import/c27-overlay.part-014
+          test -f .repo-import/c27-overlay.part-008
+          test ! -e .repo-import/c27-overlay.part-009
           cat .repo-import/c27-overlay.part-* | tr -d '\r\n' | base64 --decode > /tmp/c27-overlay.tar.gz
           echo '121371f5ceefb114b210d42d65c9deaf47ebd0fc217b35e05d854b724fe7d1c2  /tmp/c27-overlay.tar.gz' | sha256sum -c -
           tar -tzf /tmp/c27-overlay.tar.gz >/dev/null
