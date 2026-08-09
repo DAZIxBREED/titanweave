@@ -906,6 +906,12 @@ pub extern "C" fn weave_user_exit_resume(result: u64) -> ! {
     serial::println(format_args!(
         "[QUAL] K14.C24 reversible-multi-bit-pattern runtime reached intentional post-userspace halt"
     ));
+    serial::println(format_args!(
+        "[KERN] K14.C25 alive: C24 multi-bit inheritance, two distinct four-bit SCRATCH_REG0 pattern/readback/restore cycles, intercycle persistence, bounded recovery, and bus-master fencing verified"
+    ));
+    serial::println(format_args!(
+        "[QUAL] K14.C25 dual-multi-bit-pattern runtime reached intentional post-userspace halt"
+    ));
     serial::println(format_args!("[HALT] BSP halted intentionally"));
     halt_forever();
 }

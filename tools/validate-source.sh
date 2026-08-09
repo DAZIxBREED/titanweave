@@ -116,6 +116,9 @@ assert (root/'K14C23_SOURCE_STATUS.md').is_file()
 assert (root/'K14C24_IMPLEMENTATION.md').is_file()
 assert (root/'K14C24_TESTER_GUIDE.md').is_file()
 assert (root/'K14C24_SOURCE_STATUS.md').is_file()
+assert (root/'K14C25_IMPLEMENTATION.md').is_file()
+assert (root/'K14C25_TESTER_GUIDE.md').is_file()
+assert (root/'K14C25_SOURCE_STATUS.md').is_file()
 assert (root/'K14_TESTER_GUIDE.md').is_file()
 assert (root/'K13D_IMPLEMENTATION.md').is_file()
 assert (root/'K13D_TESTER_GUIDE.md').is_file()
@@ -185,4 +188,5 @@ python3 "$ROOT/tools/test-k14c21-linker-layout.py"
 python3 "$ROOT/tools/test-k14c22-reversible-scratch-mutation.py"
 python3 "$ROOT/tools/test-k14c23-dual-probe-stability.py"
 python3 "$ROOT/tools/test-k14c24-multi-bit-pattern.py"
-echo "Titanweave K1-K14.C24 integrated source validation passed (K14.C24 runtime qualification still required)."
+python3 "$ROOT/tools/test-k14c25-dual-multi-bit-pattern.py"
+echo "Titanweave K1-K14.C25 integrated source validation passed (K14.C25 runtime qualification still required)."

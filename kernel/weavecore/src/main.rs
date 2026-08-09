@@ -41,6 +41,7 @@ mod native_gpu_c21;
 mod native_gpu_c22;
 mod native_gpu_c23;
 mod native_gpu_c24;
+mod native_gpu_c25;
 mod translated_dma;
 mod compositor;
 mod input_router;
@@ -711,6 +712,14 @@ pub extern "C" fn weavecore_entry(boot_info_address: u64) -> ! {
             state.amd_present,state.navi48,state.profile_verified,state.exact_domain_live,state.c23_dual_cycle_verified,state.c23_target_revalidated,state.target_revalidated,state.c23_restore_persisted,state.target_dword_offset,state.bar5_ready,state.transaction_eligible,state.pattern_attempted,state.pattern_verified,state.restore_verified,state.restore_retry_used,state.writes_performed,state.pattern_polls,state.restore_polls,state.transaction_fingerprint,state.fallback_armed
         )),
         Err(error) => { serial::println(format_args!("[FAIL] K14.C24 reversible GFX12 multi-bit pattern gate failed: {error}")); halt_forever(); }
+    }
+
+    match native_gpu_c25::initialize(&mut allocator, boot_info.bootstrap.page_table_root) {
+        Ok(state) => serial::println(format_args!(
+            "[C25OK] K14.C25 GFX12 SCRATCH_REG0 dual multi-bit pattern stability gate: amd_present={} navi48={} profile={} domain={} C24_pattern={} C24_restore={} C24_target={} revalidated={} C24_persisted={} intercycle={} target={:#x} BAR5={} eligible={} cycleA={} restoreA={} cycleB={} restoreB={} dual={} writes={} fingerprint={:#018x} fallback={}",
+            state.amd_present,state.navi48,state.profile_verified,state.exact_domain_live,state.c24_pattern_verified,state.c24_restore_verified,state.c24_target_revalidated,state.target_revalidated,state.c24_restore_persisted,state.intercycle_restore_persisted,state.target_dword_offset,state.bar5_ready,state.transaction_eligible,state.cycle_a_pattern_verified,state.cycle_a_restore_verified,state.cycle_b_pattern_verified,state.cycle_b_restore_verified,state.dual_pattern_verified,state.writes_performed,state.transaction_fingerprint,state.fallback_armed
+        )),
+        Err(error) => { serial::println(format_args!("[FAIL] K14.C25 GFX12 dual multi-bit pattern stability gate failed: {error}")); halt_forever(); }
     }
 
     match virtio_blk::initialize_and_verify(&mut allocator) {

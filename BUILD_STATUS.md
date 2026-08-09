@@ -6,4 +6,6 @@ K14.C22: qualified/frozen. Bounded reversible GFX12 SCRATCH_REG0 mutation and ex
 
 K14.C23: qualified/frozen. Fedora/QEMU passed the post-restore persistence and dual-probe stability safe-defer path with automatic intentional-HALT termination.
 
-K14.C24: source-integrated from frozen qualified K14.C23; QEMU qualification pending. Adds one deterministic reversible four-bit pattern/readback/restore transaction on the same exact SCRATCH_REG0 target. No additional Radeon register authority is opened.
+K14.C24: qualified/frozen from frozen qualified K14.C23. Fedora/QEMU runtime qualification passed the deterministic reversible four-bit SCRATCH_REG0 pattern/readback/restore gate with automatic intentional-HALT termination. Physical Radeon execution remains a separate bare-metal proof.
+
+K14.C25: source-integrated from frozen qualified K14.C24; QEMU qualification pending. Adds two distinct deterministic reversible four-bit SCRATCH_REG0 pattern/readback/restore cycles with an inter-cycle persistence gate on the same exact target. No additional Radeon register authority is opened.
