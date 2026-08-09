@@ -1,0 +1,91 @@
+name: Import frozen K14.C24 source snapshot
+
+on:
+  push:
+    branches:
+      - agent/full-c24-source-tree
+
+permissions:
+  contents: write
+
+jobs:
+  import-c24:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out staging branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct and verify C24 snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .repo-import/c24-source.part-000
+          test -f .repo-import/c24-source.part-008
+          test ! -e .repo-import/c24-source.part-009
+
+          cat .repo-import/c24-source.part-* | tr -d '\r\n' | base64 --decode > /tmp/c24-source.payload
+          rm -rf /tmp/c24-unpack
+          mkdir -p /tmp/c24-unpack
+
+          if tar -tzf /tmp/c24-source.payload >/dev/null 2>&1; then
+            tar -xzf /tmp/c24-source.payload -C /tmp/c24-unpack
+          elif unzip -tqq /tmp/c24-source.payload >/dev/null 2>&1; then
+            unzip -q /tmp/c24-source.payload -d /tmp/c24-unpack
+          else
+            gzip -dc /tmp/c24-source.payload > /tmp/c24-source.decoded
+            if tar -tf /tmp/c24-source.decoded >/dev/null 2>&1; then
+              tar -xf /tmp/c24-source.decoded -C /tmp/c24-unpack
+            else
+              echo 'Unsupported staged C24 payload format' >&2
+              exit 1
+            fi
+          fi
+
+          if [[ -f /tmp/c24-unpack/Cargo.toml ]]; then
+            SRC=/tmp/c24-unpack
+          else
+            CARGO_FILE="$(find /tmp/c24-unpack -mindepth 2 -maxdepth 3 -type f -name Cargo.toml | head -n1)"
+            test -n "$CARGO_FILE"
+            SRC="$(dirname "$CARGO_FILE")"
+          fi
+
+          test -f "$SRC/kernel/weavecore/src/native_gpu_c24.rs"
+          test -f "$SRC/kernel/weavecore/src/abi.rs"
+          test -f "$SRC/userspace/displayd/displayd.S"
+          test -f "$SRC/tools/run-k14c24-qemu-multi-bit-pattern.sh"
+          test -f "$SRC/SOURCE_MANIFEST.sha256"
+
+          (
+            cd "$SRC"
+            sha256sum -c SOURCE_MANIFEST.sha256
+          )
+
+          printf '%s\n' "$SRC" > /tmp/c24-source-root
+
+      - name: Replace branch with complete integrated source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="$(cat /tmp/c24-source-root)"
+
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='build/' \
+            --exclude='target/' \
+            "$SRC/" ./
+
+          test -f kernel/weavecore/src/native_gpu_c24.rs
+          test -f boot/uefi-loader/src/main.rs
+          test -f userspace/displayd/displayd.S
+          test -f tools/validate-source.sh
+          test ! -e .repo-import
+          test ! -e .github/workflows/c24-source-import.yml
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Import complete frozen K14.C24 integrated source tree'
+          git push origin HEAD:agent/full-c24-source-tree
