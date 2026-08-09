@@ -86,19 +86,96 @@ Titanweave K14.C21 reviewed-MMIO-rebind QEMU test
   xHCI/HID       : enabled
   VT-d           : ${K13_IOMMU:-1}
 
-QEMU does not emulate a native Radeon. K14.C21 consumes the frozen C19/C20 proof chain, imports the generated GFX12 SCRATCH_REG0 register index (0x2040) and BASE_IDX=1 contract, and resolves the exact GC segment-1 base only from a checksum-qualified snapshot. On QEMU there is no physical Radeon, so C21 must take the explicit no-Radeon deferred path while its resolver/self-tests, userspace ABI, and identity-write policy qualify. On supported bare metal the only promoted write is read-current -> write-the-same-u32 -> bounded exact readback on SCRATCH_REG0; arbitrary MMIO writes, MM_INDEX fallback, BAR resizing, firmware upload, command submission, and Radeon bus-master enable remain forbidden. VirtIO-GPU/GOP remain the qualified fallback.
+K14.C1 retains the frozen K14.B path and its short VT-d qualification
+window after K13 GPU resilience completes. The EDU endpoint is claimed through
+ForgeBus, mapped into a dedicated VT-d domain, and allowed to DMA only through
+two explicit IOVAs. The destination IOVA is then unmapped, globally invalidated,
+and the same DMA is required to be denied before bus mastering and translation
+are torn back down.
+
+QEMU does not emulate a native Radeon. K14.C21 consumes the C20 live-GFX12 promotion proof, imports generated regSCRATCH_REG0=0x2040 with BASE_IDX=1, resolves GC base entry 1 only from the already checksum-qualified C19 snapshot, and cross-checks GC base entry 0 against frozen C20. On QEMU there is no physical Radeon, so C21 must take the explicit no-Radeon deferred path while its generated-register/base-index self-test and userspace ABI qualify. On supported Navi48 bare metal C21 may perform exactly one reviewed SCRATCH_REG0 identity MMIO write plus bounded readback, while arbitrary MMIO writes, firmware upload, command submission, BAR resizing, and Radeon bus-master enable remain forbidden. VirtIO-GPU/GOP remain the qualified fallback.
 The kernel intentionally halts after native-service qualification.
 MSG
 
+TEST_TIMEOUT="${K14C21_TIMEOUT:-120}"
+HALT_MARKER='[HALT] BSP halted intentionally'
+
+cleanup_qemu() {
+    if [[ -n "${qemu_pid:-}" ]] && kill -0 "$qemu_pid" 2>/dev/null; then
+        kill -TERM "$qemu_pid" 2>/dev/null || true
+        sleep 0.2
+        kill -KILL "$qemu_pid" 2>/dev/null || true
+    fi
+}
+
+trap cleanup_qemu EXIT INT TERM
+
+# Run QEMU directly in the background so qemu_pid is the actual emulator PID.
+# tee remains only a consumer of QEMU stdout/stderr.
 set +e
-qemu-system-x86_64 "${QEMU_ARGS[@]}" -serial stdio 2>&1 | tee "$LOG"
-status=${PIPESTATUS[0]}
+qemu-system-x86_64 "${QEMU_ARGS[@]}" -serial stdio > >(tee "$LOG") 2>&1 &
+qemu_pid=$!
 set -e
 
-echo "QEMU exit status: $status"
+halt_seen=0
+timed_out=0
+deadline=$((SECONDS + TEST_TIMEOUT))
+
+while kill -0 "$qemu_pid" 2>/dev/null; do
+    if grep -Fq "$HALT_MARKER" "$LOG"; then
+        halt_seen=1
+        break
+    fi
+
+    if (( SECONDS >= deadline )); then
+        timed_out=1
+        break
+    fi
+
+    sleep 0.1
+done
+
+# Catch the case where QEMU exited immediately after writing the HALT marker.
+if grep -Fq "$HALT_MARKER" "$LOG"; then
+    halt_seen=1
+fi
+
+if (( halt_seen )); then
+    echo
+    echo "Intentional Titanweave HALT detected; terminating QEMU."
+    kill -TERM "$qemu_pid" 2>/dev/null || true
+elif (( timed_out )); then
+    echo
+    echo "K14.C21 QEMU qualification timed out after ${TEST_TIMEOUT}s." >&2
+    kill -TERM "$qemu_pid" 2>/dev/null || true
+    sleep 0.5
+    kill -KILL "$qemu_pid" 2>/dev/null || true
+fi
+
+set +e
+wait "$qemu_pid"
+status=$?
+set -e
+
+qemu_pid=""
+trap - EXIT INT TERM
+
 checker_status=0
 "$ROOT/tools/check-k14c21-serial-log.sh" "$LOG" || checker_status=$?
+
+if (( halt_seen )); then
+    echo "QEMU stopped after intentional kernel halt (raw exit status: $status)"
+    exit "$checker_status"
+fi
+
+echo "QEMU exit status: $status"
+
+if (( timed_out )); then
+    exit 124
+fi
+
 if (( status != 0 )); then
     exit "$status"
 fi
+
 exit "$checker_status"
