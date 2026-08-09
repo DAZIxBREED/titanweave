@@ -912,6 +912,27 @@ pub extern "C" fn weave_user_exit_resume(result: u64) -> ! {
     serial::println(format_args!(
         "[QUAL] K14.C25 dual-multi-bit-pattern runtime reached intentional post-userspace halt"
     ));
+    serial::println(format_args!(
+        "[KERN] K14.C26 alive: frozen C25 inheritance, exact second GFX12 SCRATCH_REG1 resolution, two-entry reviewed MMIO allowlist, bounded read-only proof, zero C26 MMIO writes, and bus-master fencing verified"
+    ));
+    serial::println(format_args!(
+        "[QUAL] K14.C26 final-k14-mmio-allowlist runtime reached intentional post-userspace halt"
+    ));
+    serial::println(format_args!(
+        "[K14FOUND] K14.C26 native Radeon MMIO foundation frozen; fixed roadmap continues K14 Radeon through C32 before K15 ForgeAudio"
+    ));
+    serial::println(format_args!(
+        "[KERN] K14.C27 alive: operational Radeon device/lifecycle core, exact ForgeBus ownership, live resource topology, permanent reviewed-MMIO service, real masked interrupt route/handler, and executable error/reset coordination verified"
+    ));
+    serial::println(format_args!(
+        "[QUAL] K14.C27 complete-radeon-driver-core runtime reached intentional post-userspace halt"
+    ));
+    serial::println(format_args!(
+        "[KERN] K14.C28 alive: reclaimable GTT backing, BAR0 VRAM reservation allocator, AMD common-firmware parse/CRC/SHA staging, pinned firmware ownership, watchdog, and resource-safe software recovery verified"
+    ));
+    serial::println(format_args!(
+        "[QUAL] K14.C28 memory-firmware-recovery runtime reached intentional post-userspace halt"
+    ));
     serial::println(format_args!("[HALT] BSP halted intentionally"));
     halt_forever();
 }

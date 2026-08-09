@@ -42,6 +42,15 @@ mod native_gpu_c22;
 mod native_gpu_c23;
 mod native_gpu_c24;
 mod native_gpu_c25;
+mod native_gpu_c26;
+mod radeon_mmio;
+mod radeon_resources;
+mod radeon_driver;
+mod native_gpu_c27;
+mod radeon_memory;
+mod radeon_firmware;
+mod radeon_recovery;
+mod native_gpu_c28;
 mod translated_dma;
 mod compositor;
 mod input_router;
@@ -722,6 +731,22 @@ pub extern "C" fn weavecore_entry(boot_info_address: u64) -> ! {
         Err(error) => { serial::println(format_args!("[FAIL] K14.C25 GFX12 dual multi-bit pattern stability gate failed: {error}")); halt_forever(); }
     }
 
+    match native_gpu_c26::initialize(&mut allocator, boot_info.bootstrap.page_table_root) {
+        Ok(state) => serial::println(format_args!(
+            "[C26OK] K14.C26 final reviewed GFX12 MMIO allowlist/read-only completion gate: amd_present={} navi48={} profile={} domain={} C25_dual={} C25_target={} REG1={} same_base={} distinct={} adjacent={} allowlist={} REG0={:#x} REG1={:#x} BAR5={} eligible={} attempted={} reads={} valid_reads={} read_proof={} writes={} no_write={} completion={} fingerprint={:#018x} fallback={}",
+            state.amd_present,state.navi48,state.profile_verified,state.exact_domain_live,state.c25_dual_pattern_verified,state.c25_target_revalidated,state.reg1_resolved,state.same_gc_base1,state.targets_distinct,state.targets_adjacent,state.allowlist_exact,state.reg0_target_dword_offset,state.reg1_target_dword_offset,state.bar5_ready,state.read_eligible,state.read_attempted,state.read_samples,state.read_samples_valid,state.read_proof_valid,state.writes_performed,state.no_write_verified,state.k14_completion_verified,state.read_fingerprint,state.fallback_armed
+        )),
+        Err(error) => { serial::println(format_args!("[FAIL] K14.C26 final reviewed GFX12 MMIO allowlist/read-only completion gate failed: {error}")); halt_forever(); }
+    }
+
+    match native_gpu_c27::initialize(&mut allocator, boot_info.bootstrap.page_table_root) {
+        Ok(state) => serial::println(format_args!(
+            "[C27OK] K14.C27 complete Radeon driver core: amd_present={} navi48={} C26={} model={} ownership={} topology={} mmio={} write_reject={} irq_handler={} irq_route={} irq_masked={} reset={} errors={} online={} deferred={} qualified={} fingerprint={:#018x} fallback={}",
+            state.amd_present,state.navi48,state.c26_foundation_verified,state.driver_model_verified,state.forge_ownership_verified,state.resource_topology_verified,state.reviewed_mmio_service_verified,state.generic_mmio_write_rejected,state.irq_handler_exercised,state.irq_route_registered,state.irq_masked,state.reset_coordinator_verified,state.error_machine_verified,state.core_online,state.hardware_deferred,state.qualified,state.qualification_fingerprint,state.fallback_armed
+        )),
+        Err(error) => { serial::println(format_args!("[FAIL] K14.C27 complete Radeon driver core failed: {error}")); halt_forever(); }
+    }
+
     match virtio_blk::initialize_and_verify(&mut allocator) {
         Ok(proof) => serial::println(format_args!(
             "[STOR] VirtIO block DMA read verified at {:02x}:{:02x}.{} queue={} signature={:#06x}",
@@ -741,6 +766,17 @@ pub extern "C" fn weavecore_entry(boot_info_address: u64) -> ! {
     if let Err(error) = vfs::mount_boot_volume(boot_info) {
         serial::println(format_args!("[FAIL] K14 VFS mount failed: {error}"));
         halt_forever();
+    }
+    // C28's cacheable kernel-DMA mappings carry NX PTEs and are exercised
+    // immediately, so enable EFER.NXE before their first CPU access. The later
+    // user-mapping policy call is intentionally idempotent.
+    arch::x86_64::enable_nx();
+    match native_gpu_c28::initialize(&mut allocator, boot_info.bootstrap.page_table_root) {
+        Ok(state) => serial::println(format_args!(
+            "[C28OK] K14.C28 Radeon memory+firmware+recovery: amd_present={} navi48={} C27={} GTT={} reclaim={} persistent={} VRAM={} firmware_parser={} firmware_staging={} firmware_files={} watchdog={} recovery={} DMA={} bus_master_off={} submit={} IRQ_hw={} qualified={} fingerprint={:#018x} fallback={}",
+            state.amd_present,state.navi48,state.c27_verified,state.gtt_operational,state.gtt_reclaim_verified,state.persistent_gtt_verified,state.vram_reservation_verified,state.firmware_parser_verified,state.firmware_staging_verified,state.firmware_files_staged,state.watchdog_verified,state.recovery_lifecycle_verified,state.dma_enabled,state.bus_master_off,state.command_submit_enabled,state.physical_irq_enabled,state.qualified,state.qualification_fingerprint,state.fallback_armed
+        )),
+        Err(error) => { serial::println(format_args!("[FAIL] K14.C28 Radeon memory+firmware+recovery failed: {error}")); halt_forever(); }
     }
     match vfs::log_directory(b"C:\\SYSTEM\\SERVICES") {
         Ok(count) => serial::println(format_args!(

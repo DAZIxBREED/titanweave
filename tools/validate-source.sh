@@ -119,6 +119,17 @@ assert (root/'K14C24_SOURCE_STATUS.md').is_file()
 assert (root/'K14C25_IMPLEMENTATION.md').is_file()
 assert (root/'K14C25_TESTER_GUIDE.md').is_file()
 assert (root/'K14C25_SOURCE_STATUS.md').is_file()
+assert (root/'K14C25_RUNTIME_QUALIFICATION.md').is_file()
+assert (root/'K14C26_IMPLEMENTATION.md').is_file()
+assert (root/'K14C26_TESTER_GUIDE.md').is_file()
+assert (root/'K14C26_SOURCE_STATUS.md').is_file()
+assert (root/'K14_LOCKED_ROADMAP.md').is_file()
+assert (root/'K14C27_IMPLEMENTATION.md').is_file()
+assert (root/'K14C27_TESTER_GUIDE.md').is_file()
+assert (root/'K14C27_SOURCE_STATUS.md').is_file()
+assert (root/'K14C28_IMPLEMENTATION.md').is_file()
+assert (root/'K14C28_TESTER_GUIDE.md').is_file()
+assert (root/'K14C28_SOURCE_STATUS.md').is_file()
 assert (root/'K14_TESTER_GUIDE.md').is_file()
 assert (root/'K13D_IMPLEMENTATION.md').is_file()
 assert (root/'K13D_TESTER_GUIDE.md').is_file()
@@ -189,4 +200,7 @@ python3 "$ROOT/tools/test-k14c22-reversible-scratch-mutation.py"
 python3 "$ROOT/tools/test-k14c23-dual-probe-stability.py"
 python3 "$ROOT/tools/test-k14c24-multi-bit-pattern.py"
 python3 "$ROOT/tools/test-k14c25-dual-multi-bit-pattern.py"
-echo "Titanweave K1-K14.C25 integrated source validation passed (K14.C25 runtime qualification still required)."
+python3 "$ROOT/tools/test-k14c26-final-mmio-allowlist.py"
+python3 "$ROOT/tools/test-k14c27-radeon-driver-core.py"
+python3 "$ROOT/tools/test-k14c28-memory-firmware-recovery.py"
+echo "Titanweave K1-K14.C28 integrated source validation passed; K14.C28 runtime qualification pending."

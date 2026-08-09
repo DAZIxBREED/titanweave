@@ -506,6 +506,54 @@ _start:
 .c25_no_radeon:
     TW_WRITE TW_CONSOLE_HANDLE, c25_qemu, C25_QEMU_LEN
 .c25_done:
+    TW_WRITE TW_CONSOLE_HANDLE, k14c26_banner, K14C26_BANNER_LEN
+    mov rax, TW_SYS_NATIVE_GPU_C26_QUERY
+    xor rdi, rdi
+    int 0x80
+    test al, 1
+    jz .c26_no_radeon
+    test eax, 0x2000
+    jnz .c26_verified
+    TW_WRITE TW_CONSOLE_HANDLE, c26_wait, C26_WAIT_LEN
+    jmp .c26_done
+.c26_verified:
+    TW_WRITE TW_CONSOLE_HANDLE, c26_verified, C26_VERIFIED_LEN
+    jmp .c26_done
+.c26_no_radeon:
+    TW_WRITE TW_CONSOLE_HANDLE, c26_qemu, C26_QEMU_LEN
+.c26_done:
+    TW_WRITE TW_CONSOLE_HANDLE, k14c27_banner, K14C27_BANNER_LEN
+    mov rax, TW_SYS_NATIVE_GPU_C27_QUERY
+    xor rdi, rdi
+    int 0x80
+    test al, 1
+    jz .c27_no_radeon
+    test eax, 0x2000
+    jnz .c27_verified
+    TW_WRITE TW_CONSOLE_HANDLE, c27_wait, C27_WAIT_LEN
+    jmp .c27_done
+.c27_verified:
+    TW_WRITE TW_CONSOLE_HANDLE, c27_verified, C27_VERIFIED_LEN
+    jmp .c27_done
+.c27_no_radeon:
+    TW_WRITE TW_CONSOLE_HANDLE, c27_qemu, C27_QEMU_LEN
+.c27_done:
+    TW_WRITE TW_CONSOLE_HANDLE, k14c28_banner, K14C28_BANNER_LEN
+    mov rax, TW_SYS_NATIVE_GPU_C28_QUERY
+    xor rdi, rdi
+    int 0x80
+    test al, 1
+    jz .c28_no_radeon
+    test eax, 0x2000
+    jnz .c28_verified
+    TW_WRITE TW_CONSOLE_HANDLE, c28_wait, C28_WAIT_LEN
+    jmp .c28_done
+.c28_verified:
+    TW_WRITE TW_CONSOLE_HANDLE, c28_verified, C28_VERIFIED_LEN
+    jmp .c28_done
+.c28_no_radeon:
+    TW_WRITE TW_CONSOLE_HANDLE, c28_qemu, C28_QEMU_LEN
+.c28_done:
     mov rax, rbx
     test rax, rax
     jz .gpu_none
@@ -1134,3 +1182,58 @@ c25_verified:
     .ascii "[displayd] K14.C25 dual four-bit SCRATCH_REG0 pattern cycles and exact restoration verified with Radeon bus mastering off"
 c25_verified_end:
 .equ C25_VERIFIED_LEN, c25_verified_end - c25_verified
+
+# K14.C26 final K14 reviewed MMIO allowlist and SCRATCH_REG1 read-only completion gate.
+k14c26_banner:
+    .ascii "[displayd] K14.C26 final GFX12 reviewed MMIO allowlist and SCRATCH_REG1 read-only completion gate online"
+k14c26_banner_end:
+.equ K14C26_BANNER_LEN, k14c26_banner_end - k14c26_banner
+c26_qemu:
+    .ascii "[displayd] K14.C26 no physical Radeon in QEMU; final K14 SCRATCH_REG1 read proof remains safely deferred"
+c26_qemu_end:
+.equ C26_QEMU_LEN, c26_qemu_end - c26_qemu
+c26_wait:
+    .ascii "[displayd] K14.C26 Radeon present; waiting for final reviewed SCRATCH_REG1 read-only completion proof"
+c26_wait_end:
+.equ C26_WAIT_LEN, c26_wait_end - c26_wait
+c26_verified:
+    .ascii "[displayd] K14.C26 final reviewed REG0/REG1 allowlist and SCRATCH_REG1 read-only proof verified; K14 completion gate closed"
+c26_verified_end:
+.equ C26_VERIFIED_LEN, c26_verified_end - c26_verified
+
+# K14.C27 complete operational Radeon driver-core gate.
+k14c27_banner:
+    .ascii "[displayd] K14.C27 complete Radeon driver core online"
+k14c27_banner_end:
+.equ K14C27_BANNER_LEN, k14c27_banner_end - k14c27_banner
+c27_qemu:
+    .ascii "[displayd] K14.C27 no physical Radeon in QEMU; operational driver-core software paths qualified and physical ownership/MMIO route safely deferred"
+c27_qemu_end:
+.equ C27_QEMU_LEN, c27_qemu_end - c27_qemu
+c27_wait:
+    .ascii "[displayd] K14.C27 Radeon present; driver core has not closed ownership/topology/MMIO/IRQ/error gates"
+c27_wait_end:
+.equ C27_WAIT_LEN, c27_wait_end - c27_wait
+c27_verified:
+    .ascii "[displayd] K14.C27 Radeon driver core verified: ForgeBus ownership, live topology, reviewed MMIO service, masked IRQ route, lifecycle/error/reset coordinator online"
+c27_verified_end:
+.equ C27_VERIFIED_LEN, c27_verified_end - c27_verified
+
+# K14.C28 operational memory + firmware + recovery gate.
+k14c28_banner:
+    .ascii "[displayd] K14.C28 Radeon memory, firmware staging, and recovery subsystem online"
+k14c28_banner_end:
+.equ K14C28_BANNER_LEN, k14c28_banner_end - k14c28_banner
+c28_qemu:
+    .ascii "[displayd] K14.C28 no physical Radeon in QEMU; real GTT allocation/mapping/reclaim plus firmware parser/CRC and watchdog recovery logic qualified while hardware firmware staging is deferred"
+c28_qemu_end:
+.equ C28_QEMU_LEN, c28_qemu_end - c28_qemu
+c28_wait:
+    .ascii "[displayd] K14.C28 Radeon present; memory, validated firmware staging, or recovery gates are incomplete"
+c28_wait_end:
+.equ C28_WAIT_LEN, c28_wait_end - c28_wait
+c28_verified:
+    .ascii "[displayd] K14.C28 Radeon memory+firmware+recovery verified: reclaimable GTT, VRAM reservations, validated pinned firmware staging, watchdog and resource-safe software recovery ready"
+c28_verified_end:
+.equ C28_VERIFIED_LEN, c28_verified_end - c28_verified
+

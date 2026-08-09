@@ -30,6 +30,14 @@ pub const KERNEL_MMIO_BASE: u64 = 0xffff_ffc0_0000_0000;
 pub const KERNEL_MMIO_LIMIT: u64 = KERNEL_MMIO_BASE + (1u64 << 30);
 static NEXT_KERNEL_MMIO: SpinLock<u64> = SpinLock::new(KERNEL_MMIO_BASE);
 
+/// Cacheable supervisor-only aperture for physically contiguous system-memory
+/// buffers owned by kernel DMA-capable drivers.  Unlike KERNEL_MMIO, these
+/// mappings intentionally keep normal WB cache semantics and are NX.  C28 uses
+/// this for Radeon GTT/firmware staging; bus mastering remains fenced until C29.
+pub const KERNEL_DMA_BASE: u64 = 0xffff_ff80_0000_0000;
+pub const KERNEL_DMA_LIMIT: u64 = KERNEL_DMA_BASE + (1u64 << 30);
+static NEXT_KERNEL_DMA: SpinLock<u64> = SpinLock::new(KERNEL_DMA_BASE);
+
 /// Map a physical device-MMIO range into Titanweave's supervisor-only,
 /// uncached kernel MMIO aperture.  This is intentionally separate from the
 /// broad bootstrap identity map: PCI BAR placement is firmware/platform
@@ -107,6 +115,87 @@ pub fn map_kernel_mmio_readonly(
         physical += FRAME_SIZE; virtual_address += FRAME_SIZE;
     }
     virtual_page.checked_add(page_offset).ok_or("read-only kernel MMIO result address overflow")
+}
+
+
+/// Map physically contiguous normal memory into the cacheable kernel DMA
+/// aperture.  This creates a real CPU mapping but does not authorize the device
+/// to DMA; device bus mastering/IOMMU enablement is a separate policy gate.
+pub fn map_kernel_dma(
+    allocator: &mut FrameAllocator<'_>,
+    kernel_cr3: u64,
+    physical_address: u64,
+    length: u64,
+) -> Result<u64, &'static str> {
+    if physical_address == 0 || physical_address & (FRAME_SIZE - 1) != 0 || length == 0 {
+        return Err("invalid kernel DMA mapping request");
+    }
+    let mapped_bytes = align_up(length, FRAME_SIZE).ok_or("kernel DMA length overflow")?;
+    let virtual_page = {
+        let mut next = NEXT_KERNEL_DMA.lock();
+        let start = align_up(*next, FRAME_SIZE).ok_or("kernel DMA virtual alignment overflow")?;
+        let end = start.checked_add(mapped_bytes).ok_or("kernel DMA virtual range overflow")?;
+        if end > KERNEL_DMA_LIMIT { return Err("kernel DMA aperture exhausted"); }
+        *next = end;
+        start
+    };
+    let mut offset = 0;
+    while offset < mapped_bytes {
+        map_kernel_dma_page(allocator, kernel_cr3, virtual_page + offset, physical_address + offset)?;
+        offset += FRAME_SIZE;
+    }
+    Ok(virtual_page)
+}
+
+fn map_kernel_dma_page(
+    allocator: &mut FrameAllocator<'_>,
+    kernel_cr3: u64,
+    virtual_address: u64,
+    physical_address: u64,
+) -> Result<(), &'static str> {
+    if virtual_address < KERNEL_DMA_BASE || virtual_address >= KERNEL_DMA_LIMIT {
+        return Err("kernel DMA virtual address outside aperture");
+    }
+    if physical_address & (FRAME_SIZE - 1) != 0 { return Err("kernel DMA physical page is unaligned"); }
+    let pml4 = kernel_cr3 & ADDRESS_MASK;
+    let pdpt = ensure_kernel_table(allocator, pml4, pml4_index(virtual_address))?;
+    let pd = ensure_kernel_table(allocator, pdpt, pdpt_index(virtual_address))?;
+    let pt = ensure_kernel_table(allocator, pd, pd_index(virtual_address))?;
+    let index = pt_index(virtual_address);
+    if read_entry(pt, index) & PAGE_PRESENT != 0 { return Err("attempted to remap kernel DMA page"); }
+    // Normal cacheable WB memory: deliberately no PWT/PCD bits.
+    write_entry(pt, index, physical_address | PAGE_PRESENT | PAGE_WRITABLE | PAGE_NO_EXECUTE);
+    unsafe { asm!("invlpg [{}]", in(reg) virtual_address, options(nostack, preserves_flags)) };
+    Ok(())
+}
+
+/// Remove a prior kernel-DMA mapping.  Physical frames remain owned by the
+/// caller and can be returned to FrameAllocator only after this succeeds.
+pub fn unmap_kernel_dma(kernel_cr3: u64, virtual_address: u64, length: u64) -> Result<u64, &'static str> {
+    if virtual_address < KERNEL_DMA_BASE || virtual_address >= KERNEL_DMA_LIMIT || virtual_address & (FRAME_SIZE - 1) != 0 || length == 0 {
+        return Err("invalid kernel DMA unmap request");
+    }
+    let bytes = align_up(length, FRAME_SIZE).ok_or("kernel DMA unmap length overflow")?;
+    let end = virtual_address.checked_add(bytes).ok_or("kernel DMA unmap range overflow")?;
+    if end > KERNEL_DMA_LIMIT { return Err("kernel DMA unmap outside aperture"); }
+    let mut cursor = virtual_address;
+    let mut pages = 0u64;
+    while cursor < end {
+        let pml4e = read_entry(kernel_cr3 & ADDRESS_MASK, pml4_index(cursor));
+        if pml4e & PAGE_PRESENT == 0 { return Err("kernel DMA PML4 entry missing"); }
+        let pdpte = read_entry(pml4e & ADDRESS_MASK, pdpt_index(cursor));
+        if pdpte & PAGE_PRESENT == 0 || pdpte & PAGE_HUGE != 0 { return Err("kernel DMA PDPT entry invalid"); }
+        let pde = read_entry(pdpte & ADDRESS_MASK, pd_index(cursor));
+        if pde & PAGE_PRESENT == 0 || pde & PAGE_HUGE != 0 { return Err("kernel DMA PD entry invalid"); }
+        let pt = pde & ADDRESS_MASK;
+        let index = pt_index(cursor);
+        if read_entry(pt, index) & PAGE_PRESENT == 0 { return Err("kernel DMA PTE missing"); }
+        write_entry(pt, index, 0);
+        unsafe { asm!("invlpg [{}]", in(reg) cursor, options(nostack, preserves_flags)) };
+        pages += 1;
+        cursor += FRAME_SIZE;
+    }
+    Ok(pages)
 }
 
 fn map_kernel_mmio_page(

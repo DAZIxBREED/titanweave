@@ -75,4 +75,17 @@ Status: qualified/frozen. Fedora/QEMU passed the C23 source/runtime/userspace sa
 Status: qualified/frozen. Fedora/QEMU passed the C24 source/runtime/userspace safe-defer path with automatic intentional-HALT termination. C24 keeps the exact C21-C23 target, requires C23 restoration persistence, applies one deterministic internally-derived four-bit pattern, verifies exact readback, and mandatorily restores the original value. No new register or destructive authority is enabled.
 
 ## K14.C25 — Dual reversible four-bit SCRATCH_REG0 pattern stability
-Status: source-integrated; runtime qualification pending. C25 keeps the exact C21-C24 target, requires C24 restoration persistence, performs two distinct internally-derived four-bit pattern/readback/restore cycles with inter-cycle persistence, and keeps all wider Radeon write capabilities fenced.
+Status: qualified/frozen. C25 keeps the exact C21-C24 target, requires C24 restoration persistence, performs two distinct internally-derived four-bit pattern/readback/restore cycles with inter-cycle persistence, and keeps all wider Radeon write capabilities fenced.
+
+## K14.C26 — Safe reviewed MMIO foundation / SCRATCH_REG1 read proof
+Status: **qualified/frozen**. Fedora/QEMU passed the source-reviewed GFX12 `SCRATCH_REG1` target at `0x2041` / BASE_IDX 1, same verified GC base-slot/adjacency contract, two-entry reviewed REG0/REG1 MMIO allowlist, bounded read-only REG1 proof, userspace handoff and intentional `[HALT]`. C26 performs zero MMIO writes. The C26 artifact preserves its historical completion marker, but the project owner's locked roadmap supersedes that planning decision: K14 continues through C32 and K15 is ForgeAudio.
+
+## K14.C27 — Complete Radeon driver core
+Status: **qualified/frozen**. Fedora/QEMU passed C27 operational driver lifecycle/error/reset coordination, exact ForgeBus ownership, live resource/topology capture, permanent identity-based reviewed-MMIO reads with generic-write rejection, the real interrupt-router route/handler self-test, userspace status ABI, stable userspace handoff, `[K14FOUND]`, `[QUAL]`, and intentional `[HALT]`. QEMU contains no physical Radeon, so physical ownership/MMIO remains safely deferred. No TODO/stub/placeholder subsystem is allowed. C27 adds zero new register authority and leaves firmware upload, DMA/bus mastering, command submission and physical interrupt enable fenced.
+
+## Locked remainder of K14
+C28 = memory + firmware + recovery; C29 = rings + queues + fences + DMA; C30 = complete basic display engine; C31 = graphics + compute execution; C32 = production/stability + final K14. After C32, K15 begins ForgeAudio.
+
+
+## K14.C28 — Memory + firmware + recovery
+Status: **source-integrated; runtime qualification pending**. C28 implements real reclaimable GTT/system backing, BAR0 VRAM reservation/reuse, GPU-VA reservations, AMD firmware common-header + CRC32 validation with SHA-verified pinned staging, and executable watchdog/resource-safe software recovery. The owned Titanweave recovery interrupt route can be activated on physical Radeon; Radeon IH/MSI programming is not claimed. C29 retains exclusive authority for GPU page tables, bus mastering/DMA, rings/queues/fences and command submission.

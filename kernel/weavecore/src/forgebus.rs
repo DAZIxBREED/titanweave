@@ -139,3 +139,23 @@ pub fn mark_device_online(device:DeviceId)->Result<(),&'static str>{with_bus(|bu
 pub fn revoke_device_dma(allocator:&mut FrameAllocator<'_>,device:DeviceId)->Result<usize,&'static str>{
  with_bus(|bus|bus.dma.force_revoke(allocator,device))
 }
+
+/// Resolve the ForgeBus device object that owns an exact PCI requester.
+///
+/// K14.C27 uses this instead of inventing a second Radeon ownership table.  The
+/// lookup is exact on BDF + vendor + product and therefore returns the same
+/// retained DeviceId that was created during ForgeBus enumeration.
+pub fn device_id_for_pci(function:pci::PciFunction)->Option<DeviceId>{with_bus(|bus|{
+ let location=((function.bus as u64)<<16)|((function.device as u64)<<8)|function.function as u64;
+ bus.devices.iter().find(|d|d.location==location&&d.vendor_id==function.vendor_id&&d.product_id==function.device_id).map(|d|d.id)
+})}
+
+/// Return the currently bound ForgeBus driver for a retained device.
+pub fn driver_id_for_device(device:DeviceId)->Option<u64>{with_bus(|bus|{
+ bus.devices.get(device).and_then(|d|d.driver_id)
+})}
+
+/// Snapshot the retained ForgeBus lifecycle state for a device.
+pub fn device_state(device:DeviceId)->Option<DeviceState>{with_bus(|bus|{
+ bus.devices.get(device).map(|d|d.state)
+})}

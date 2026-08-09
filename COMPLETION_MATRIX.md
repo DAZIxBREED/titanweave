@@ -28,4 +28,14 @@ Qualified/frozen. Requires the C22-restored value to persist, then performs two 
 Qualified/frozen. Requires frozen C23 stability, then performs one internally-derived four-bit pattern/readback/restore cycle on the exact same checksum-backed `SCRATCH_REG0` target. Fedora/QEMU qualification passed through `[C24OK]`, userspace handoff, `[QUAL]`, and intentional `[HALT]` with automatic QEMU termination. Arbitrary MMIO writes, caller-selected values/addresses, firmware upload, command submission, BAR resizing, MM_INDEX fallback, and bus-master enable remain fenced.
 
 ## K14.C25
-Source-integrated; QEMU qualification pending. Requires frozen C24 four-bit pattern/restoration proof, then performs two distinct internally-derived four-bit pattern/readback/restore cycles with an explicit inter-cycle persistence check on the exact same checksum-backed `SCRATCH_REG0` target. Arbitrary MMIO writes, caller-selected values/addresses, firmware upload, command submission, BAR resizing, MM_INDEX fallback, and bus-master enable remain fenced.
+Qualified/frozen. Requires frozen C24 four-bit pattern/restoration proof, then performs two distinct internally-derived four-bit pattern/readback/restore cycles with an explicit inter-cycle persistence check on the exact same checksum-backed `SCRATCH_REG0` target. User-confirmed Fedora/QEMU qualification freezes the path.
+
+## K14.C26 — Safe Radeon hardware/MMIO foundation
+Qualified/frozen. Fedora/QEMU passed exact reviewed GFX12 `SCRATCH_REG1` (`0x2041`, BASE_IDX 1) resolution from the same checksum-qualified GC base slot, the two-entry REG0/REG1 MMIO allowlist, bounded REG1 reads with zero C26 MMIO writes and intentional `[HALT]`. Historical C26 qualification evidence is preserved; the locked roadmap continues Radeon K14 through C32.
+
+## K14.C27 — Complete Radeon driver core
+Qualified/frozen. Fedora/QEMU passed the operational driver object/lifecycle, exact ForgeBus ownership, live resource topology, permanent reviewed-MMIO read service, executable error/reset coordination, real masked interrupt route/handler self-test, userspace handoff and intentional halt. Zero placeholders, zero new registers, zero new MMIO writes. Physical Radeon paths remain a separate bare-metal proof. K15 remains ForgeAudio after final K14.C32.
+
+
+## K14.C28 — Memory + firmware + recovery
+Source-integrated; runtime qualification pending. Real GTT allocation/map/reclaim, VRAM reservations, GPU-VA reservation management, validated pinned firmware staging, watchdog and software recovery are implemented. C29 execution/DMA authority remains fenced.

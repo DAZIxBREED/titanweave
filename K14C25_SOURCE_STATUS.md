@@ -1,5 +1,5 @@
 # Titanweave K14.C25 Source Status
 
-Status: **IMPLEMENTED / SOURCE-VALIDATED / RUNTIME QUALIFICATION PENDING**
+Status: **QUALIFIED / FROZEN**
 
-K14.C25 is integrated from frozen/qualified K14.C24. It retains the exact checksum-backed GFX12 `SCRATCH_REG0` target and adds two distinct internally-derived reversible four-bit pattern/readback/restore cycles with an explicit inter-cycle restoration-persistence check. No additional Radeon register or destructive capability is enabled.
+K14.C25 is frozen from the qualified K14.C24 baseline. The user-confirmed Fedora/QEMU qualification closed the two distinct internally-derived reversible four-bit `SCRATCH_REG0` pattern/readback/restore cycles with inter-cycle restoration persistence while preserving the existing fail-closed Radeon capability fences. Physical Radeon mutation remains a separate bare-metal proof.
