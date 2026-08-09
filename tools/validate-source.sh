@@ -137,6 +137,10 @@ assert (root/'K14C29_RUNTIME_QUALIFICATION.md').is_file()
 assert (root/'K14C30_IMPLEMENTATION.md').is_file()
 assert (root/'K14C30_TESTER_GUIDE.md').is_file()
 assert (root/'K14C30_SOURCE_STATUS.md').is_file()
+assert (root/'K14C30_RUNTIME_QUALIFICATION.md').is_file()
+assert (root/'K14C31_IMPLEMENTATION.md').is_file()
+assert (root/'K14C31_TESTER_GUIDE.md').is_file()
+assert (root/'K14C31_SOURCE_STATUS.md').is_file()
 assert (root/'K14_TESTER_GUIDE.md').is_file()
 assert (root/'K13D_IMPLEMENTATION.md').is_file()
 assert (root/'K13D_TESTER_GUIDE.md').is_file()
@@ -212,4 +216,5 @@ python3 "$ROOT/tools/test-k14c27-radeon-driver-core.py"
 python3 "$ROOT/tools/test-k14c28-memory-firmware-recovery.py"
 python3 "$ROOT/tools/test-k14c29-rings-queues-fences-dma.py"
 python3 "$ROOT/tools/test-k14c30-basic-display-engine.py"
-echo "Titanweave K1-K14.C30 integrated source validation passed; K14.C30 runtime qualification pending."
+python3 "$ROOT/tools/test-k14c31-graphics-compute-execution.py"
+echo "Titanweave K1-K14.C31 integrated source validation passed; K14.C31 runtime qualification pending."

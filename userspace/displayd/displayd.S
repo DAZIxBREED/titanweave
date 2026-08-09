@@ -586,6 +586,22 @@ _start:
 .c30_wait:
     TW_WRITE TW_CONSOLE_HANDLE, c30_wait, C30_WAIT_LEN
 .c30_done:
+    TW_WRITE TW_CONSOLE_HANDLE, k14c31_banner, K14C31_BANNER_LEN
+    mov rax, TW_SYS_NATIVE_GPU_C31_QUERY
+    xor rdi, rdi
+    int 0x80
+    test eax, 0x2000
+    jz .c31_wait
+    test al, 1
+    jz .c31_qemu
+    TW_WRITE TW_CONSOLE_HANDLE, c31_verified, C31_VERIFIED_LEN
+    jmp .c31_done
+.c31_qemu:
+    TW_WRITE TW_CONSOLE_HANDLE, c31_qemu_msg, C31_QEMU_LEN
+    jmp .c31_done
+.c31_wait:
+    TW_WRITE TW_CONSOLE_HANDLE, c31_wait, C31_WAIT_LEN
+.c31_done:
     mov rax, rbx
     test rax, rax
     jz .gpu_none
@@ -1303,4 +1319,21 @@ c30_verified:
     .ascii "[displayd] K14.C30 basic display engine verified; native DCN programming is not falsely claimed"
 c30_verified_end:
 .equ C30_VERIFIED_LEN, c30_verified_end - c30_verified
+# K14.C31 graphics + compute execution gate.
+k14c31_banner:
+    .ascii "[displayd] K14.C31 graphics and compute execution subsystem online"
+k14c31_banner_end:
+.equ K14C31_BANNER_LEN, k14c31_banner_end - k14c31_banner
+c31_qemu_msg:
+    .ascii "[displayd] K14.C31 QEMU reference backend verified: owned shader upload/cache, typed commands, separate compute/graphics queues, vector-add dispatch, triangle draw, timeline fences, and live framebuffer present operational"
+c31_qemu_msg_end:
+.equ C31_QEMU_LEN, c31_qemu_msg_end - c31_qemu_msg
+c31_wait:
+    .ascii "[displayd] K14.C31 execution gate not qualified; physical Radeon CP/GFX queues and native AMD ISA remain fail-closed"
+c31_wait_end:
+.equ C31_WAIT_LEN, c31_wait_end - c31_wait
+c31_verified:
+    .ascii "[displayd] K14.C31 reference graphics/compute execution verified; physical Radeon queue programming remains separately gated"
+c31_verified_end:
+.equ C31_VERIFIED_LEN, c31_verified_end - c31_verified
 

@@ -945,6 +945,12 @@ pub extern "C" fn weave_user_exit_resume(result: u64) -> ! {
     serial::println(format_args!(
         "[QUAL] K14.C30 complete-basic-display-engine runtime reached intentional post-userspace halt"
     ));
+    serial::println(format_args!(
+        "[KERN] K14.C31 alive: owned shader upload/cache/precache, typed command encoding, separate compute/graphics queues, verified vector-add dispatch, verified triangle draw, live framebuffer present, timeline-fence retirement, and future compute capability model operational"
+    ));
+    serial::println(format_args!(
+        "[QUAL] K14.C31 graphics-compute-execution runtime reached intentional post-userspace halt"
+    ));
     serial::println(format_args!("[HALT] BSP halted intentionally"));
     halt_forever();
 }

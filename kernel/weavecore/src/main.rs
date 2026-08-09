@@ -56,6 +56,14 @@ mod radeon_edid;
 mod radeon_dcn401;
 mod radeon_display;
 mod native_gpu_c30;
+mod radeon_shader;
+mod radeon_shader_cache;
+mod radeon_command;
+mod radeon_pipeline;
+mod radeon_compute;
+mod radeon_compute_caps;
+mod radeon_graphics;
+mod native_gpu_c31;
 mod radeon_sdma_packets;
 mod radeon_ring;
 mod radeon_queue;
@@ -802,6 +810,13 @@ pub extern "C" fn weavecore_entry(boot_info_address: u64) -> ! {
             state.amd_present,state.c29_verified,state.connector_count,state.active_connector,state.width,state.height,state.edid_verified,state.scanout_verified,state.flips,state.atomic_modeset_verified,state.hotplug_verified,state.dcn401_source_reviewed,state.native_dcn_programmed,state.qualified,state.fingerprint,state.fallback_armed
         )),
         Err(error) => { serial::println(format_args!("[FAIL] K14.C30 complete basic display engine failed: {error}")); halt_forever(); }
+    }
+    match native_gpu_c31::initialize(&mut allocator, boot_info) {
+        Ok(state) => serial::println(format_args!(
+            "[C31OK] K14.C31 graphics+compute execution: amd_present={} C30={} shader_upload={} shader_cache={} precache={} command_encoding={} compute_queue={} compute={} elements={} graphics_queue={} graphics={} pixels={} framebuffer={} reference={} physical_GPU={} qualified={} fingerprint={:#018x}",
+            state.amd_present,state.c30_verified,state.shader_upload_verified,state.shader_cache_verified,state.precache_entries,state.command_encoding_verified,state.compute_queue_verified,state.compute_dispatch_verified,state.compute_elements,state.graphics_queue_verified,state.graphics_draw_verified,state.triangle_pixels,state.framebuffer_verified,state.reference_execution,state.physical_gpu_execution,state.qualified,state.fingerprint
+        )),
+        Err(error) => { serial::println(format_args!("[FAIL] K14.C31 graphics+compute execution failed: {error}")); halt_forever(); }
     }
     match vfs::log_directory(b"C:\\SYSTEM\\SERVICES") {
         Ok(count) => serial::println(format_args!(

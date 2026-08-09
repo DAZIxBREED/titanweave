@@ -1,0 +1,26 @@
+//! K14.C31 executable compute path over real owned GTT resources.
+use core::ptr;
+use crate::{memory::{FrameAllocator,FRAME_SIZE},radeon_command::{CommandBuffer,CommandOpcode,ExecutionQueue,QueueClass},radeon_fence::RadeonFenceTimeline,radeon_memory,radeon_pipeline,radeon_shader::{self,ReferenceShaderKind,ShaderStage},radeon_shader_cache};
+pub const RADEON_COMPUTE_ABI_VERSION:u32=1;
+pub const C31_COMPUTE_ELEMENTS:u32=256;
+pub const C31_COMPUTE_BYTES:u64=C31_COMPUTE_ELEMENTS as u64*4;
+#[derive(Clone,Copy,Debug)]pub struct ComputeQualification{pub shader_object:u64,pub command_object:u64,pub input_a:u64,pub input_b:u64,pub output:u64,pub groups:u32,pub elements:u32,pub result_hash:u64,pub queue_submitted:u64,pub queue_retired:u64,pub fence:u32,pub verified:bool}
+fn hash_words(base:u64,count:u32)->u64{let mut h=0xcbf29ce484222325u64;for i in 0..count{let v=unsafe{ptr::read_volatile((base as *const u32).add(i as usize))};h^=u64::from(v);h=h.wrapping_mul(0x100000001b3)}h}
+fn execute_reference(cmd:&CommandBuffer,owner:u64,p:radeon_pipeline::ComputePipeline,a:u64,b:u64,out:u64,elements:u32)->Result<(),&'static str>{
+ let oa=radeon_memory::object(owner,a).ok_or("C31 compute input A missing")?;let ob=radeon_memory::object(owner,b).ok_or("C31 compute input B missing")?;let oo=radeon_memory::object(owner,out).ok_or("C31 compute output missing")?;
+ let mut saw_pipeline=false;let mut saw_dispatch=false;for i in 0..cmd.command_count(){let c=cmd.decode(i)?;match c.opcode{CommandOpcode::BindPipeline=>{if c.a!=p.id{return Err("C31 compute pipeline command mismatch")};saw_pipeline=true},CommandOpcode::Dispatch=>{if c.a==0||c.b==0||c.c==0{return Err("C31 compute dispatch dimensions invalid")};saw_dispatch=true},_=>{}}}
+ if !saw_pipeline||!saw_dispatch||p.shader.kind!=ReferenceShaderKind::VectorAddU32{return Err("C31 compute command stream incomplete")}
+ if u64::from(elements)*4>oa.mapped_bytes||u64::from(elements)*4>ob.mapped_bytes||u64::from(elements)*4>oo.mapped_bytes{return Err("C31 compute resource bounds invalid")}
+ for i in 0..elements{let av=unsafe{ptr::read_volatile((oa.kernel_virtual as *const u32).add(i as usize))};let bv=unsafe{ptr::read_volatile((ob.kernel_virtual as *const u32).add(i as usize))};unsafe{ptr::write_volatile((oo.kernel_virtual as *mut u32).add(i as usize),av.wrapping_add(bv))}}
+ Ok(())
+}
+pub fn qualify(allocator:&mut FrameAllocator<'_>,owner:u64)->Result<ComputeQualification,&'static str>{
+ let shader=radeon_shader::upload(allocator,owner,ShaderStage::Compute,ReferenceShaderKind::VectorAddU32,&radeon_shader::COMPUTE_VECTOR_ADD)?;radeon_shader_cache::insert(shader,true)?;if radeon_shader_cache::lookup(shader.digest).is_none(){return Err("C31 compute shader cache lookup failed")}
+ let a=radeon_memory::allocate_gtt(allocator,owner,C31_COMPUTE_BYTES,FRAME_SIZE)?;let b=radeon_memory::allocate_gtt(allocator,owner,C31_COMPUTE_BYTES,FRAME_SIZE)?;let out=radeon_memory::allocate_gtt(allocator,owner,C31_COMPUTE_BYTES,FRAME_SIZE)?;
+ for i in 0..C31_COMPUTE_ELEMENTS{unsafe{ptr::write_volatile((a.kernel_virtual as *mut u32).add(i as usize),i.wrapping_mul(3).wrapping_add(1));ptr::write_volatile((b.kernel_virtual as *mut u32).add(i as usize),i.wrapping_mul(7).wrapping_add(9));ptr::write_volatile((out.kernel_virtual as *mut u32).add(i as usize),0)}}
+ let pipe=radeon_pipeline::compute(0xc031_0001,shader,64)?;let mut cmd=CommandBuffer::allocate(allocator,owner)?;cmd.emit(CommandOpcode::BindPipeline,pipe.id,0,0,0)?;cmd.emit(CommandOpcode::BindResource,0,a.id,a.gpu_virtual,C31_COMPUTE_BYTES)?;cmd.emit(CommandOpcode::BindResource,1,b.id,b.gpu_virtual,C31_COMPUTE_BYTES)?;cmd.emit(CommandOpcode::BindResource,2,out.id,out.gpu_virtual,C31_COMPUTE_BYTES)?;let groups=(C31_COMPUTE_ELEMENTS+pipe.local_size_x-1)/pipe.local_size_x;cmd.emit(CommandOpcode::Dispatch,u64::from(groups),1,1,u64::from(pipe.local_size_x))?;
+ let mut fence=RadeonFenceTimeline::allocate(allocator,owner)?;let (seq,_)=fence.issue()?;let mut q=ExecutionQueue::new(QueueClass::Compute);let sid=q.submit(cmd.object_id(),seq)?;if q.start_head()?!=sid{return Err("C31 compute queue start id mismatch")};execute_reference(&cmd,owner,pipe,a.id,b.id,out.id,C31_COMPUTE_ELEMENTS)?;
+ for i in 0..C31_COMPUTE_ELEMENTS{let av=unsafe{ptr::read_volatile((a.kernel_virtual as *const u32).add(i as usize))};let bv=unsafe{ptr::read_volatile((b.kernel_virtual as *const u32).add(i as usize))};let ov=unsafe{ptr::read_volatile((out.kernel_virtual as *const u32).add(i as usize))};if ov!=av.wrapping_add(bv){return Err("C31 compute output verification failed")}}
+ fence.complete_software(seq);if !fence.is_complete(seq)||q.retire_head(fence.completed())?!=sid{return Err("C31 compute fence/retirement failed")};let (_,submitted,retired,count)=q.counters();if count!=0||submitted!=1||retired!=1{return Err("C31 compute queue counters invalid")};let h=hash_words(out.kernel_virtual,C31_COMPUTE_ELEMENTS);if h==0{return Err("C31 compute result fingerprint invalid")}
+ Ok(ComputeQualification{shader_object:shader.object_id,command_object:cmd.object_id(),input_a:a.id,input_b:b.id,output:out.id,groups,elements:C31_COMPUTE_ELEMENTS,result_hash:h,queue_submitted:submitted,queue_retired:retired,fence:seq,verified:true})
+}

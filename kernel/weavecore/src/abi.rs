@@ -41,6 +41,7 @@ pub const SYS_NATIVE_GPU_C27_QUERY: u64 = 38;
 pub const SYS_NATIVE_GPU_C28_QUERY: u64 = 39;
 pub const SYS_NATIVE_GPU_C29_QUERY: u64 = 40;
 pub const SYS_NATIVE_GPU_C30_QUERY: u64 = 41;
+pub const SYS_NATIVE_GPU_C31_QUERY: u64 = 42;
 
 pub const ERROR_INVALID_ARGUMENT: i64 = -1;
 pub const ERROR_BAD_HANDLE: i64 = -2;
