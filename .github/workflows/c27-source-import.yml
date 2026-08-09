@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    types: [opened]
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -13,9 +17,10 @@ jobs:
     if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Check out main
+      - name: Check out current main
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
 
       - name: Reconstruct and verify C26+C27 overlay
@@ -48,5 +53,3 @@ jobs:
           git add -A
           git commit -m 'Import frozen K14.C26-C27 integrated source overlay'
           git push origin HEAD:main
-
-# Triggered explicitly after PR #17 merge so the workflow exists in the parent main commit.
