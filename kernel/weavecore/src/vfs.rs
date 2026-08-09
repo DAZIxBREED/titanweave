@@ -4,7 +4,7 @@ use crate::serial;
 use crate::sync::SpinLock;
 use titanweave_boot_protocol::{boot_module_kind, BootInfo};
 
-const FILE_SCRATCH_BYTES: usize = 128 * 1024;
+const FILE_SCRATCH_BYTES: usize = 1024 * 1024;
 
 struct MountedVolume {
     volume: Fat32Volume,
