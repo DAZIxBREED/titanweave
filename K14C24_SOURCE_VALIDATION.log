@@ -1,0 +1,41 @@
+Titanweave K1-K6 foundation replacement checks passed.
+Titanweave K10 trust/update policy tests passed.
+Titanweave K11 ForgeBus policy tests passed.
+Titanweave K11.0 prerequisite closure checks passed.
+Titanweave K11 runtime closure wiring checks passed.
+Titanweave K11.1-K11.8 backend source checks passed.
+Titanweave K11 semantic regression checks passed.
+Titanweave K12 graphics/display regression checks passed.
+Titanweave K13.A GPU acceleration-foundation regression checks passed.
+Titanweave K13.B VirtIO-GPU transport source checks passed.
+Titanweave K13.C buffered compositor-presentation source checks passed.
+Titanweave K13.D resilience/multi-GPU source checks passed.
+Titanweave K14.A native-GPU prerequisite source checks passed.
+Titanweave K14.B hardware-translated DMA source checks passed.
+Titanweave K14.C1 native GPU ownership foundation source checks passed.
+Titanweave K14.C2 persistent-domain/AMD bring-up source checks passed.
+Titanweave K14.C3 Radeon bare-metal staging source checks passed.
+Titanweave K14.C4 Radeon exact-domain source checks passed.
+Titanweave K14.C5 AMD-Vi page-table source checks passed.
+Titanweave K14.C6 live AMD-Vi source checks passed.
+Titanweave K14.C7 Radeon discovery source checks passed.
+Titanweave K14.C8 Radeon ASIC/IP source checks passed.
+Titanweave K14.C9 verified Radeon profile/live safe-read source checks passed.
+Titanweave K14.C10 per-IP MMIO whitelist/live-read source checks passed.
+Titanweave K14.C11 reviewed-register/IP-base source checks passed.
+Titanweave K14.C12 trusted-IP-base/live-read source checks passed.
+Titanweave K14.C13 physical Radeon read-proof source checks passed.
+Titanweave K14.C14 controlled write-promotion readiness source checks passed.
+Titanweave K14.C15 controlled write-transaction source checks passed.
+Titanweave K14.C16 reviewed MMIO-write source checks passed.
+Titanweave K14.C17 AMD IP-discovery source checks passed.
+Titanweave K14.C18 AMD discovery snapshot-verification source checks passed.
+Titanweave K14.C19 physical AMD discovery snapshot source checks passed.
+Titanweave K14.C20 exact AMD IP-base source checks passed.
+Titanweave K14.C21 reviewed GFX12 MMIO-rebind source checks passed.
+Titanweave K14.C21 sealed-rustflags/ELF-contract source checks passed.
+Titanweave K14.C21 linker-layout regression checks passed.
+Titanweave K14.C22 reversible scratch-mutation source checks passed.
+Titanweave K14.C23 dual-probe stability source checks passed.
+Titanweave K14.C24 reversible multi-bit pattern source checks passed.
+Titanweave K1-K14.C24 integrated source validation passed (K14.C24 runtime qualification later passed on Fedora/QEMU and the milestone is frozen).
