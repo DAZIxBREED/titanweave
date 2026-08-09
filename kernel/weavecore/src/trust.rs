@@ -1,0 +1,18 @@
+//! K10 trust store, revocation, approvals, and signed-content policy.
+use crate::{capability::{self,CapabilitySet,SubjectKind},sha256};
+pub const TRUST_PROTOCOL_VERSION:u32=1;pub const MAX_TRUST_KEYS:usize=64;pub const MAX_REVOCATIONS:usize=128;pub const MAX_APPROVALS:usize=128;
+#[derive(Clone,Copy,Debug,PartialEq,Eq)]pub enum TrustLevel{Untrusted,User,Developer,System,Platform}
+#[derive(Clone,Copy)]pub struct TrustKey{pub id:[u8;32],pub public_key:[u8;32],pub level:TrustLevel,pub enabled:bool}
+impl TrustKey{pub const EMPTY:Self=Self{id:[0;32],public_key:[0;32],level:TrustLevel::Untrusted,enabled:false};}
+#[derive(Clone,Copy)]pub struct SignedManifest{pub subject_hash:[u8;32],pub signer_id:[u8;32],pub kind:SubjectKind,pub capabilities:CapabilitySet,pub version:u64,pub minimum_system_version:u64,pub signature:[u8;64]}
+#[derive(Clone,Copy)]pub struct Approval{pub subject_hash:[u8;32],pub capabilities:u64,pub expires_at:u64,pub active:bool}impl Approval{pub const EMPTY:Self=Self{subject_hash:[0;32],capabilities:0,expires_at:0,active:false};}
+pub trait SignatureVerifier{fn verify(&self,public_key:&[u8;32],message_hash:&[u8;32],signature:&[u8;64])->bool;}
+pub struct TrustStore{keys:[TrustKey;MAX_TRUST_KEYS],revoked:[[u8;32];MAX_REVOCATIONS],revoked_count:usize,approvals:[Approval;MAX_APPROVALS]}
+impl TrustStore{pub const fn new()->Self{Self{keys:[TrustKey::EMPTY;MAX_TRUST_KEYS],revoked:[[0;32];MAX_REVOCATIONS],revoked_count:0,approvals:[Approval::EMPTY;MAX_APPROVALS]}}
+ pub fn add_key(&mut self,key:TrustKey)->Result<(),&'static str>{if key.id==[0;32]||key.public_key==[0;32]{return Err("invalid trust key")}if self.find_key(&key.id).is_some(){return Err("duplicate trust key")}for s in &mut self.keys{if !s.enabled{*s=key;return Ok(())}}Err("trust store full")}
+ pub fn disable_key(&mut self,id:&[u8;32])->Result<(),&'static str>{for k in &mut self.keys{if k.enabled&&sha256::constant_time_eq(&k.id,id){k.enabled=false;return Ok(())}}Err("trust key not found")}
+ pub fn revoke(&mut self,hash:[u8;32])->Result<(),&'static str>{if self.is_revoked(&hash){return Ok(())}if self.revoked_count>=MAX_REVOCATIONS{return Err("revocation store full")}self.revoked[self.revoked_count]=hash;self.revoked_count+=1;Ok(())}
+ pub fn is_revoked(&self,hash:&[u8;32])->bool{self.revoked[..self.revoked_count].iter().any(|x|sha256::constant_time_eq(x,hash))}
+ pub fn find_key(&self,id:&[u8;32])->Option<&TrustKey>{self.keys.iter().find(|k|k.enabled&&sha256::constant_time_eq(&k.id,id))}
+ pub fn approve(&mut self,a:Approval)->Result<(),&'static str>{for s in &mut self.approvals{if !s.active{*s=a;return Ok(())}}Err("approval store full")}
+ pub fn verify<V:SignatureVerifier>(&self,m:&SignedManifest,system_version:u64,now:u64,v:&V)->Result<TrustLevel,&'static str>{if self.is_revoked(&m.subject_hash){return Err("content is revoked")}if m.minimum_system_version>system_version{return Err("system version below manifest minimum")}capability::validate(m.kind,&m.capabilities)?;let key=self.find_key(&m.signer_id).ok_or("unknown signer")?;if !v.verify(&key.public_key,&m.subject_hash,&m.signature){return Err("signature verification failed")}if matches!(m.kind,SubjectKind::Driver|SubjectKind::Update|SubjectKind::Firmware)&&!matches!(key.level,TrustLevel::System|TrustLevel::Platform){return Err("privileged content requires system/platform signer")}if key.level==TrustLevel::User&&!self.approvals.iter().any(|a|a.active&&a.expires_at>=now&&sha256::constant_time_eq(&a.subject_hash,&m.subject_hash)&&m.capabilities.raw()&!a.capabilities==0){return Err("user-signed content requires capability approval")}Ok(key.level)} }

@@ -1,0 +1,22 @@
+[workspace]
+members = [
+    "boot/uefi-loader",
+    "kernel/weavecore",
+    "libraries/boot-protocol",
+    "libraries/user-runtime",
+]
+resolver = "3"
+
+[workspace.package]
+version = "0.14.0"
+edition = "2024"
+publish = false
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+lto = "thin"
+codegen-units = 1
+strip = false

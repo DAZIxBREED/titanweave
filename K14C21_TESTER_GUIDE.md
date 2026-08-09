@@ -39,3 +39,15 @@ Titanweave K14.C21 reviewed-MMIO-rebind runtime qualification PASSED.
 ## Bare-metal boundary
 
 A later explicit bare-metal qualification on a supported Navi48/RX 9070-class device is the authority for the physical C21 transaction. A QEMU PASS must never be recorded as proof that the physical MMIO store occurred.
+
+## Linkfix 2 — deterministic kernel linker flags
+
+If a parent or user Cargo configuration repeats Titanweave's x86_64-none
+`rustflags`, rust-lld can receive `-Tkernel/weavecore/linker.ld` twice. With a
+`PHDRS` script, replaying the script can produce an otherwise valid ET_EXEC
+header with `e_phnum=0`, which TitanBoot rejects as `No usable program headers`.
+
+`tools/build.sh` now supplies the WeaveCore flags through
+`CARGO_ENCODED_RUSTFLAGS`, which takes precedence over hierarchical Cargo
+`target.*.rustflags`, and immediately validates the built ELF with
+`tools/check-kernel-elf.py` before staging the ESP.

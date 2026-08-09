@@ -1,6 +1,8 @@
 # Titanweave K14.C13 — Physical Radeon Read-Proof Qualification
 
-K14.C13 freezes K14.C12 and turns its bounded Radeon status reads into a bare-metal qualification proof. It does not enable any new destructive GPU capability.
+K14.C13 freezes K14.C12 and turns its bounded Radeon status reads into a
+bare-metal qualification proof. It does not enable any new destructive GPU
+capability.
 
 ## Qualification proof
 - exact C9 Radeon profile and PCI identity must already be verified;
@@ -12,6 +14,7 @@ K14.C13 freezes K14.C12 and turns its bounded Radeon status reads into a bare-me
 - writes, firmware upload, command submission, and Radeon bus mastering remain disabled.
 
 ## Navi48
-Navi48 remains fail-closed until trusted AMD IP-discovery data supplies the required GC/SDMA base addresses. C13 does not substitute guessed offsets.
+Navi48 remains fail-closed until trusted AMD IP-discovery data supplies the
+required GC/SDMA base addresses. C13 does not substitute guessed offsets.
 
 QEMU validates the policy/runtime path with physical proof intentionally deferred.

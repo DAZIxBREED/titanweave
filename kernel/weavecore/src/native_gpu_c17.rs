@@ -33,11 +33,15 @@ static STATE:SpinLock<C17State>=SpinLock::new(C17State::EMPTY);
 fn le16(b:&[u8],o:usize)->Option<u16>{Some(u16::from_le_bytes([*b.get(o)?,*b.get(o+1)?]))}
 fn le32(b:&[u8],o:usize)->Option<u32>{Some(u32::from_le_bytes([*b.get(o)?,*b.get(o+1)?,*b.get(o+2)?,*b.get(o+3)?]))}
 
+/// Parse only the AMD binary header and IP-discovery table header.  This is
+/// intentionally bounded and does not trust offsets/sizes until checked.
 pub fn parse_discovery_snapshot(b:&[u8])->Result<DiscoveryParse,&'static str>{
  if b.len()<60 || b.len()>AMD_DISCOVERY_MAX_BINARY_BYTES{return Err("K14.C17 discovery snapshot size invalid");}
  if le32(b,0)!=Some(AMD_DISCOVERY_BINARY_SIGNATURE){return Err("K14.C17 AMD discovery binary signature mismatch");}
  let maj=le16(b,4).ok_or("K14.C17 truncated version")?;let min=le16(b,6).ok_or("K14.C17 truncated version")?;let size=le16(b,10).ok_or("K14.C17 truncated binary size")?;
  if size as usize>b.len()||size<20{return Err("K14.C17 binary size out of bounds");}
+ // v1 header has six fixed table_info records starting at byte 12. v2 adds
+ // num_tables/padding and then a variable table list at byte 16.
  let (table_count,table_base)=if maj>=2{let n=le16(b,12).ok_or("K14.C17 truncated table count")?;if n==0||n>AMD_DISCOVERY_MAX_TABLES{return Err("K14.C17 invalid table count");}(n,16usize)}else{(6u16,12usize)};
  if table_base+table_count as usize*8>size as usize{return Err("K14.C17 table list exceeds binary");}
  let ip_off=le16(b,table_base).ok_or("K14.C17 missing IP table offset")?;let ip_size=le16(b,table_base+4).ok_or("K14.C17 missing IP table size")?;
@@ -51,6 +55,7 @@ pub fn parse_discovery_snapshot(b:&[u8])->Result<DiscoveryParse,&'static str>{
 
 fn parser_self_test()->Result<(),&'static str>{
  let mut b=[0u8;128];b[0..4].copy_from_slice(&AMD_DISCOVERY_BINARY_SIGNATURE.to_le_bytes());b[4..6].copy_from_slice(&1u16.to_le_bytes());b[10..12].copy_from_slice(&128u16.to_le_bytes());
+ // table_list[IP_DISCOVERY] at 12: offset=64, size=64
  b[12..14].copy_from_slice(&64u16.to_le_bytes());b[16..18].copy_from_slice(&64u16.to_le_bytes());
  b[64..68].copy_from_slice(&AMD_DISCOVERY_TABLE_SIGNATURE.to_le_bytes());b[68..70].copy_from_slice(&3u16.to_le_bytes());b[70..72].copy_from_slice(&64u16.to_le_bytes());b[76..78].copy_from_slice(&1u16.to_le_bytes());
  let p=parse_discovery_snapshot(&b)?;if !p.valid||p.ip_table_offset!=64||p.ip_version!=3||p.num_dies!=1{return Err("K14.C17 parser self-test mismatch");}Ok(())

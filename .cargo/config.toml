@@ -1,0 +1,15 @@
+[alias]
+build-loader = "build -p titanweave-uefi-loader --target x86_64-unknown-uefi"
+build-kernel = "build -p weavecore --target x86_64-unknown-none"
+
+[target.x86_64-unknown-none]
+rustflags = [
+    "-C", "link-arg=-Tkernel/weavecore/linker.ld",
+    "-C", "relocation-model=static",
+    "-C", "code-model=kernel",
+    "-C", "no-redzone=yes",
+    "-C", "link-arg=--entry=weavecore_entry",
+]
+
+[term]
+color = "always"

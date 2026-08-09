@@ -2,13 +2,12 @@
 
 Status: **QUALIFIED / FROZEN**
 
-Fedora/QEMU runtime qualification completed successfully on 2026-08-09. QEMU has no physical Radeon, so this qualifies the C23 runtime/gating/self-test/userspace/deferred path and does not claim that the physical Navi48 MMIO probe/restore transactions occurred on bare metal.
+Fedora/QEMU runtime qualification completed successfully on 2026-08-09. QEMU has no physical Radeon, so this qualifies the C23 source/self-test/runtime-gating/userspace/deferred path and does not claim the physical Navi48 dual-probe MMIO cycles occurred on bare metal.
 
-Observed qualification ending:
+Observed ending:
 
 ```text
 Intentional Titanweave HALT detected; terminating QEMU.
-qemu: terminating on signal 15 from pid 166122 (bash)
 PASS  [BOOT] WeaveCore K14 entered from WEAVECORE.ELF
 PASS  [C22OK] K14.C22 reversible GFX12 SCRATCH_REG0 mutation gate:
 PASS  [C23PS] post-restore persistence gate:
@@ -27,4 +26,4 @@ Titanweave K14.C23 dual-probe-stability runtime qualification PASSED.
 QEMU stopped after intentional kernel halt (raw exit status: 0)
 ```
 
-The K14.C23 milestone is therefore frozen as the baseline for K14.C24 development.
+K14.C23 is the frozen baseline for K14.C24.

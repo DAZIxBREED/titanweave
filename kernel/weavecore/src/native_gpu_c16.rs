@@ -66,6 +66,8 @@ fn self_test()->Result<(),&'static str>{if K14C16_ABI_VERSION!=1||!RADEON_C16_MM
 
 pub fn initialize(_allocator:&mut FrameAllocator<'_>,_kernel_cr3:u64)->Result<C16State,&'static str>{
  self_test()?;let c9=native_gpu_c9::state();let c14=native_gpu_c14::state();let c15=native_gpu_c15::state();let mut s=C16State{amd_present:c9.amd_present,c14_ready:c14.write_prerequisites_complete,c15_ready:!c9.amd_present||c15.identity_write_verified,device_id:c9.device_id,revision:c9.revision,..C16State::EMPTY};
+ // Source-reviewed semantic target: upstream AMDGPU GFX12 ring tests intentionally write/read GC SCRATCH_REG0.
+ // Exact generated register index and trusted Navi48 IP base are intentionally not guessed in C16.
  if c9.profile==native_gpu_c9::ProfileId::Navi48Rx9070{s.target=ReviewedTarget::Gfx12GcScratchReg0;s.target_reviewed=true;s.target_resolved=false;s.trusted_base_ready=false;}
  s.bar5_ready=bar5().is_some();
  serial::println(format_args!("[C16RV] reviewed MMIO target: gfx12_gc_scratch_reg0=true upstream_write_readback_semantics=true exact_generated_index_imported=false guessed_offsets=false identity_write_only=true"));

@@ -157,6 +157,7 @@ pub fn initialize() -> Result<C14State, &'static str> {
         ));
     }
 
+    // C14 may prove eligibility, but it must never promote the write path.
     s.write_promotion_enabled = false;
 
     if s.write_promotion_enabled

@@ -4,6 +4,6 @@ K14.C5 is source-integrated from the frozen, QEMU-qualified K14.C4 baseline. All
 
 K14.C22: qualified/frozen. Bounded reversible GFX12 SCRATCH_REG0 mutation and exact restoration passed Fedora/QEMU qualification; physical Radeon execution remains a separate bare-metal proof.
 
-K14.C23: qualified/frozen from the qualified K14.C22 baseline. Fedora/QEMU runtime qualification passed with C22-restoration persistence, both distinct bounded one-bit probe/restore cycles, userspace handoff, intentional post-userspace halt, and automatic QEMU termination verified. Physical Radeon execution remains a separate bare-metal proof; no additional Radeon register authority is opened.
+K14.C23: qualified/frozen. Fedora/QEMU passed the post-restore persistence and dual-probe stability safe-defer path with automatic intentional-HALT termination.
 
-K14.C24: qualified/frozen from the qualified K14.C23 baseline. Fedora/QEMU runtime qualification passed the deterministic reversible four-bit SCRATCH_REG0 pattern/readback/restore gate, userspace handoff, intentional post-userspace halt, and automatic QEMU termination. Physical Radeon execution remains a separate bare-metal proof; no additional Radeon register authority is opened.
+K14.C24: source-integrated from frozen qualified K14.C23; QEMU qualification pending. Adds one deterministic reversible four-bit pattern/readback/restore transaction on the same exact SCRATCH_REG0 target. No additional Radeon register authority is opened.

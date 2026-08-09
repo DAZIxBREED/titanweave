@@ -1,0 +1,4 @@
+//! K11 USB HID report validation and boot-keyboard decoding.
+pub const HID_BOOT_KEYBOARD_PROTOCOL:u8=1;
+#[derive(Clone,Copy,Debug,PartialEq,Eq)]pub struct KeyEvent{pub usage:u8,pub pressed:bool,pub modifiers:u8}
+#[derive(Clone,Copy)]pub struct BootKeyboardState{previous:[u8;6],modifiers:u8}impl BootKeyboardState{pub const fn new()->Self{Self{previous:[0;6],modifiers:0}}pub fn decode(&mut self,report:&[u8],mut emit:impl FnMut(KeyEvent))->Result<(),&'static str>{if report.len()!=8{return Err("boot keyboard report must be 8 bytes")}let modifiers=report[0];for &key in &self.previous{if key!=0&&!report[2..8].contains(&key){emit(KeyEvent{usage:key,pressed:false,modifiers})}}for &key in &report[2..8]{if key!=0&&!self.previous.contains(&key){emit(KeyEvent{usage:key,pressed:true,modifiers})}}self.previous.copy_from_slice(&report[2..8]);self.modifiers=modifiers;Ok(())}pub fn modifiers(&self)->u8{self.modifiers}}

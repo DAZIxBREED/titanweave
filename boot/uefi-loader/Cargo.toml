@@ -1,0 +1,13 @@
+[package]
+name = "titanweave-uefi-loader"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "titanweave-uefi-loader"
+path = "src/main.rs"
+
+[dependencies]
+uefi = { version = "0.39.0", features = ["alloc", "global_allocator"] }
+titanweave-boot-protocol = { path = "../../libraries/boot-protocol" }

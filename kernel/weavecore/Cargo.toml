@@ -1,0 +1,15 @@
+[package]
+name = "weavecore"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "weavecore"
+path = "src/main.rs"
+
+test = false
+bench = false
+
+[dependencies]
+titanweave-boot-protocol = { path = "../../libraries/boot-protocol" }

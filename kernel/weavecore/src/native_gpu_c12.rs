@@ -14,6 +14,19 @@
 //! NX, uncached, and read-only, then exactly one bounded volatile u32 load is
 //! performed. No Radeon register write, firmware upload, command submission,
 //! or bus-master enable is permitted in C12.
+//!
+//! Reviewed source facts used by this milestone:
+//! - AMD/Linux sienna_cichlid_ip_offset.h:
+//!     GC_BASE__INST0_SEG0    = 0x00001260
+//!     SDMA0_BASE__INST0_SEG0 = 0x00001260
+//! - AMD/Linux gc_10_3_0_offset.h:
+//!     GRBM_STATUS            = 0x0da4, BASE_IDX=0
+//!     GRBM_CHIP_REVISION     = 0x0dc1, BASE_IDX=0
+//!     SDMA0_STATUS_REG       = 0x0025, BASE_IDX=0
+//! - AMD/Linux amdgpu_device.c uses PCI BAR5 as rmmio for modern Radeon.
+//! - AMD/Linux discovery.h models per-IP base-address records; C12 keeps the
+//!   discovery record selector bounded and fail-closed until a trusted binary
+//!   acquisition/parser supplies those records.
 
 use crate::{
     memory::FrameAllocator,
@@ -121,6 +134,8 @@ fn map_from_discovery_records(records:&[DiscoveryIpRecord])->TrustedIpBaseMap{
 fn map_for_profile(profile:native_gpu_c9::ProfileId)->TrustedIpBaseMap{
     match profile {
         native_gpu_c9::ProfileId::Navi21Rx6800_6900 => TrustedIpBaseMap::NAVI21,
+        // Navi 48 deliberately requires trusted IP-discovery input; C12 does
+        // not invent a static base map for GFX12 hardware.
         native_gpu_c9::ProfileId::Navi48Rx9070 => TrustedIpBaseMap::EMPTY,
         _ => TrustedIpBaseMap::EMPTY,
     }

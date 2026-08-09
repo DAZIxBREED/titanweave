@@ -46,6 +46,7 @@ impl C13State {
 static STATE: SpinLock<C13State> = SpinLock::new(C13State::EMPTY);
 
 fn fingerprint(device:u16, revision:u8, values:[u32;3])->u64 {
+    // FNV-1a is only a compact evidence fingerprint here, not a security hash.
     let mut h=0xcbf29ce484222325u64;
     for b in device.to_le_bytes().into_iter()
         .chain([revision])
@@ -102,6 +103,8 @@ pub fn initialize()->Result<C13State,&'static str> {
 
         if s.c12_live_read_proof {
             let vals=[c12.grbm_status,c12.chip_revision,c12.sdma_status];
+            // 0xffff_ffff is the canonical absent/unimplemented MMIO response.
+            // Do not reject zero: status registers can legitimately be idle/zero.
             s.read_values_sane = !vals.iter().all(|v| *v == 0xffff_ffff);
             let b=native_gpu_binding::state();
             let command=pci::read_u16(b.selected_bus,b.selected_device,b.selected_function,0x04);

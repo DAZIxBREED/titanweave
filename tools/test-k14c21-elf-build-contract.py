@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import subprocess, tempfile, textwrap
 root=Path(__file__).resolve().parents[1]
 b=(root/'tools/build.sh').read_text()
 for x in [

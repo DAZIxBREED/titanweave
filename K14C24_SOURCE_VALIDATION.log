@@ -38,4 +38,4 @@ Titanweave K14.C21 linker-layout regression checks passed.
 Titanweave K14.C22 reversible scratch-mutation source checks passed.
 Titanweave K14.C23 dual-probe stability source checks passed.
 Titanweave K14.C24 reversible multi-bit pattern source checks passed.
-Titanweave K1-K14.C24 integrated source validation passed (K14.C24 runtime qualification later passed on Fedora/QEMU and the milestone is frozen).
+Titanweave K1-K14.C24 integrated source validation passed (K14.C24 runtime qualification still required).

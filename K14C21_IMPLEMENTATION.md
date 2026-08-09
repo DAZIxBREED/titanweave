@@ -44,3 +44,18 @@ The successful path performs one MMIO store. The maximum bounded count is two on
 ## Still forbidden
 
 Arbitrary Radeon MMIO writes, MM_INDEX/MM_DATA fallback, BAR resizing, firmware upload, GPU command submission, and Radeon bus-master enable remain disabled. QEMU contains no physical Radeon and must take the explicit deferred path.
+
+## Linkfix 2 — ELF program-header contract
+
+A Fedora build exposed a second packaging issue after the original section
+layout overlap was repaired: rust-lld was receiving the linker script and entry
+argument twice. Replaying a linker script that declares `PHDRS` can leave an
+ET_EXEC image with `e_phnum=0`; TitanBoot correctly rejects that image before
+kernel entry.
+
+The C21 build now seals WeaveCore's compiler/linker flags via
+`CARGO_ENCODED_RUSTFLAGS` for the kernel cargo invocation. Cargo defines this
+source as higher precedence than merged target rustflags, so ambient parent or
+user Cargo configuration cannot duplicate Titanweave's linker script. The build
+then parses the produced ELF and requires exactly one valid higher-half PT_LOAD
+before the UEFI loader is built or the ESP is staged.
