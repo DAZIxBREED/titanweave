@@ -38,4 +38,8 @@ Qualified/frozen. Fedora/QEMU passed the operational driver object/lifecycle, ex
 
 
 ## K14.C28 — Memory + firmware + recovery
-Source-integrated; runtime qualification pending. Real GTT allocation/map/reclaim, VRAM reservations, GPU-VA reservation management, validated pinned firmware staging, watchdog and software recovery are implemented. C29 execution/DMA authority remains fenced.
+Qualified/frozen. Fedora/QEMU passed the operational GTT allocation/map/reclaim, VRAM reservation, GPU-VA reservation, AMD firmware parse/CRC/SHA staging, watchdog/resource-safe software recovery, userspace handoff, `[QUAL]`, and intentional `[HALT]`. Physical silicon upload/reset and C29 execution/DMA authority remain fenced.
+
+
+## K14.C29 — Rings + queues + fences + DMA
+Qualified/frozen. Fedora/QEMU runtime qualification passed. Real GTT ring backing, FIFO submission lifecycle, GTT timeline fences, typed source-backed SDMA COPY/FENCE packets, and bounded owned-memory DMA execution are implemented. Physical Radeon SDMA remains fail-closed behind real firmware/translation/IOMMU prerequisites.

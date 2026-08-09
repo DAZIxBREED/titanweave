@@ -554,6 +554,22 @@ _start:
 .c28_no_radeon:
     TW_WRITE TW_CONSOLE_HANDLE, c28_qemu, C28_QEMU_LEN
 .c28_done:
+    TW_WRITE TW_CONSOLE_HANDLE, k14c29_banner, K14C29_BANNER_LEN
+    mov rax, TW_SYS_NATIVE_GPU_C29_QUERY
+    xor rdi, rdi
+    int 0x80
+    test al, 1
+    jz .c29_no_radeon
+    test eax, 0x8000
+    jnz .c29_verified
+    TW_WRITE TW_CONSOLE_HANDLE, c29_wait, C29_WAIT_LEN
+    jmp .c29_done
+.c29_verified:
+    TW_WRITE TW_CONSOLE_HANDLE, c29_verified, C29_VERIFIED_LEN
+    jmp .c29_done
+.c29_no_radeon:
+    TW_WRITE TW_CONSOLE_HANDLE, c29_qemu, C29_QEMU_LEN
+.c29_done:
     mov rax, rbx
     test rax, rax
     jz .gpu_none
@@ -1236,4 +1252,22 @@ c28_verified:
     .ascii "[displayd] K14.C28 Radeon memory+firmware+recovery verified: reclaimable GTT, VRAM reservations, validated pinned firmware staging, watchdog and resource-safe software recovery ready"
 c28_verified_end:
 .equ C28_VERIFIED_LEN, c28_verified_end - c28_verified
+
+# K14.C29 operational rings + queues + fences + DMA gate.
+k14c29_banner:
+    .ascii "[displayd] K14.C29 Radeon rings, queues, timeline fences, and typed DMA subsystem online"
+k14c29_banner_end:
+.equ K14C29_BANNER_LEN, k14c29_banner_end - k14c29_banner
+c29_qemu:
+    .ascii "[displayd] K14.C29 no physical Radeon in QEMU; GTT ring, FIFO queue, SDMA packet codec, timeline fence, and owned-memory DMA executor qualified while physical SDMA remains safely deferred"
+c29_qemu_end:
+.equ C29_QEMU_LEN, c29_qemu_end - c29_qemu
+c29_wait:
+    .ascii "[displayd] K14.C29 Radeon present; driver-side ring/queue/fence/DMA control plane is waiting on exact physical SDMA prerequisites"
+c29_wait_end:
+.equ C29_WAIT_LEN, c29_wait_end - c29_wait
+c29_verified:
+    .ascii "[displayd] K14.C29 Radeon ring/queue/fence/DMA control plane verified; raw packets and unprotected bus mastering remain forbidden"
+c29_verified_end:
+.equ C29_VERIFIED_LEN, c29_verified_end - c29_verified
 

@@ -51,6 +51,13 @@ mod radeon_memory;
 mod radeon_firmware;
 mod radeon_recovery;
 mod native_gpu_c28;
+mod native_gpu_c29;
+mod radeon_sdma_packets;
+mod radeon_ring;
+mod radeon_queue;
+mod radeon_fence;
+mod radeon_dma;
+mod radeon_sdma;
 mod translated_dma;
 mod compositor;
 mod input_router;
@@ -777,6 +784,13 @@ pub extern "C" fn weavecore_entry(boot_info_address: u64) -> ! {
             state.amd_present,state.navi48,state.c27_verified,state.gtt_operational,state.gtt_reclaim_verified,state.persistent_gtt_verified,state.vram_reservation_verified,state.firmware_parser_verified,state.firmware_staging_verified,state.firmware_files_staged,state.watchdog_verified,state.recovery_lifecycle_verified,state.dma_enabled,state.bus_master_off,state.command_submit_enabled,state.physical_irq_enabled,state.qualified,state.qualification_fingerprint,state.fallback_armed
         )),
         Err(error) => { serial::println(format_args!("[FAIL] K14.C28 Radeon memory+firmware+recovery failed: {error}")); halt_forever(); }
+    }
+    match native_gpu_c29::initialize(&mut allocator) {
+        Ok(state) => serial::println(format_args!(
+            "[C29OK] K14.C29 Radeon rings+queues+fences+DMA: amd_present={} navi48={} C28={} ring={} queue={} fence={} DMA={} bytes={} exact_SDMA={} GC_base0={} hardware_deferred={} bus_master={} physical_SDMA={} qualified={} fingerprint={:#018x} fallback={}",
+            state.amd_present,state.navi48,state.c28_verified,state.ring_ready,state.queue_ready,state.fence_ready,state.dma_ready,state.dma_bytes,state.sdma_register_plan_verified,state.sdma_gc_base0_resolved,state.hardware_deferred,state.bus_master_enabled,state.physical_sdma_programmed,state.qualified,state.qualification_fingerprint,state.fallback_armed
+        )),
+        Err(error) => { serial::println(format_args!("[FAIL] K14.C29 Radeon rings+queues+fences+DMA failed: {error}")); halt_forever(); }
     }
     match vfs::log_directory(b"C:\\SYSTEM\\SERVICES") {
         Ok(count) => serial::println(format_args!(

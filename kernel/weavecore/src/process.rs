@@ -933,6 +933,12 @@ pub extern "C" fn weave_user_exit_resume(result: u64) -> ! {
     serial::println(format_args!(
         "[QUAL] K14.C28 memory-firmware-recovery runtime reached intentional post-userspace halt"
     ));
+    serial::println(format_args!(
+        "[KERN] K14.C29 alive: operational GTT-backed SDMA ring, FIFO submission queue, timeline fence, typed COPY/FENCE packet codec, bounded owned-memory DMA executor, and exact GFX12 SDMA0 queue register plan verified"
+    ));
+    serial::println(format_args!(
+        "[QUAL] K14.C29 rings-queues-fences-dma runtime reached intentional post-userspace halt"
+    ));
     serial::println(format_args!("[HALT] BSP halted intentionally"));
     halt_forever();
 }

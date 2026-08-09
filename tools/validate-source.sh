@@ -130,6 +130,9 @@ assert (root/'K14C27_SOURCE_STATUS.md').is_file()
 assert (root/'K14C28_IMPLEMENTATION.md').is_file()
 assert (root/'K14C28_TESTER_GUIDE.md').is_file()
 assert (root/'K14C28_SOURCE_STATUS.md').is_file()
+assert (root/'K14C29_IMPLEMENTATION.md').is_file()
+assert (root/'K14C29_TESTER_GUIDE.md').is_file()
+assert (root/'K14C29_SOURCE_STATUS.md').is_file()
 assert (root/'K14_TESTER_GUIDE.md').is_file()
 assert (root/'K13D_IMPLEMENTATION.md').is_file()
 assert (root/'K13D_TESTER_GUIDE.md').is_file()
@@ -203,4 +206,5 @@ python3 "$ROOT/tools/test-k14c25-dual-multi-bit-pattern.py"
 python3 "$ROOT/tools/test-k14c26-final-mmio-allowlist.py"
 python3 "$ROOT/tools/test-k14c27-radeon-driver-core.py"
 python3 "$ROOT/tools/test-k14c28-memory-firmware-recovery.py"
-echo "Titanweave K1-K14.C28 integrated source validation passed; K14.C28 runtime qualification pending."
+python3 "$ROOT/tools/test-k14c29-rings-queues-fences-dma.py"
+echo "Titanweave K1-K14.C29 integrated source validation passed; K14.C29 runtime qualification pending."

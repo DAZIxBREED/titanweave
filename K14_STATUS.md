@@ -83,9 +83,12 @@ Status: **qualified/frozen**. Fedora/QEMU passed the source-reviewed GFX12 `SCRA
 ## K14.C27 — Complete Radeon driver core
 Status: **qualified/frozen**. Fedora/QEMU passed C27 operational driver lifecycle/error/reset coordination, exact ForgeBus ownership, live resource/topology capture, permanent identity-based reviewed-MMIO reads with generic-write rejection, the real interrupt-router route/handler self-test, userspace status ABI, stable userspace handoff, `[K14FOUND]`, `[QUAL]`, and intentional `[HALT]`. QEMU contains no physical Radeon, so physical ownership/MMIO remains safely deferred. No TODO/stub/placeholder subsystem is allowed. C27 adds zero new register authority and leaves firmware upload, DMA/bus mastering, command submission and physical interrupt enable fenced.
 
-## Locked remainder of K14
-C28 = memory + firmware + recovery; C29 = rings + queues + fences + DMA; C30 = complete basic display engine; C31 = graphics + compute execution; C32 = production/stability + final K14. After C32, K15 begins ForgeAudio.
-
-
 ## K14.C28 — Memory + firmware + recovery
-Status: **source-integrated; runtime qualification pending**. C28 implements real reclaimable GTT/system backing, BAR0 VRAM reservation/reuse, GPU-VA reservations, AMD firmware common-header + CRC32 validation with SHA-verified pinned staging, and executable watchdog/resource-safe software recovery. The owned Titanweave recovery interrupt route can be activated on physical Radeon; Radeon IH/MSI programming is not claimed. C29 retains exclusive authority for GPU page tables, bus mastering/DMA, rings/queues/fences and command submission.
+Status: **qualified/frozen**. Fedora/QEMU passed the operational GTT allocation/map/reclaim, BAR0 VRAM reservation/reuse, GPU-VA reservations, AMD firmware common-header + CRC32 validation with SHA-verified staging logic, executable watchdog/resource-safe software recovery, userspace status, `[QUAL]`, and intentional `[HALT]`. QEMU has no physical Radeon, so firmware silicon upload and physical ASIC reset are not claimed. C29 retains exclusive authority for GPU page tables, bus mastering/DMA, rings/queues/fences, command submission, and physical GPU interrupt programming.
+
+## Locked remainder of K14
+C29 = rings + queues + fences + DMA; C30 = complete basic display engine; C31 = graphics + compute execution; C32 = production/stability + final K14. After C32, K15 begins ForgeAudio.
+
+
+## K14.C29 — Rings + queues + fences + DMA
+Status: **source-integrated; runtime qualification pending**. C29 implements the operational driver-side SDMA execution control plane and exact GFX12 queue-0 register plan. QEMU qualifies the real GTT ring/queue/fence/owned-memory executor while physical Radeon SDMA/bus mastering remains safely deferred until actual firmware-in-silicon, GPU address translation and persistent translated IOMMU-domain prerequisites exist. Locked next milestone after C29 freeze: C30 complete basic display engine.
