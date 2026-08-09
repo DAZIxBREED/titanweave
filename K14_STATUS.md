@@ -1,112 +1,104 @@
 # Titanweave K14 Status
 
-## Overall status
+- K14.A native GPU prerequisite foundation: qualified and frozen.
+- K14.B hardware-translated DMA / Intel VT-d qualification: qualified and frozen.
+- K14.C1 native GPU ownership foundation: qualified and frozen.
+- K14.C2 persistent-domain + AMD bring-up contract: qualified and frozen.
+- K14.C3 Radeon bare-metal staging: qualified and frozen.
+- K14.C4 exact Radeon requester / AMD-Vi qualification gate: source-integrated; runtime qualification pending.
 
-**K14 Native Radeon Foundation: COMPLETE / QUALIFIED / FROZEN ✅**
+K14.C4 remains fail-closed. It does not claim a production AMD-Vi page-table engine, Radeon firmware upload, command submission, MMIO writes, or Radeon bus mastering.
 
-Final Fedora/QEMU qualification completed successfully on **2026-08-09** at K14.C32.
 
-The final runtime reached all production/stability gates, stable userspace handoff, the intentional post-userspace halt, and the final completion markers:
+## K14.C5
 
-```text
-[C32OK] K14.C32 production/stability + final K14
-[QUAL] K14.C32 production-stability-final runtime reached intentional post-userspace halt
-[K14DONE] Titanweave native Radeon driver foundation operational
-[K15NEXT] K15 ForgeAudio is the next locked Titanweave milestone
-[HALT] BSP halted intentionally
-```
+AMD-Vi hardware page-table engine foundation added: exact requester DTE image, pinned device/page tables, command buffer, event log and fault-path state. Physical register programming and Radeon bus mastering remain fail-closed pending bare-metal AMD-Vi qualification.
 
-QEMU stopped after the intentional Titanweave halt with raw exit status `0`.
 
-Physical Radeon stress remains separately evidenced. QEMU qualification proves Titanweave's software/reference execution, safety, lifecycle, concurrency, recovery, display, ABI, and production-gate behavior; it does not falsely claim physical silicon stress.
+## K14.C6
+Live AMD-Vi hardware-programming boundary added; QEMU must remain fail-closed and bare-metal activation is separately gated.
 
----
+## K14.C7 — Radeon MMIO / firmware discovery staging
 
-## Frozen closure milestones
+Source-integrated after qualified K14.C6. Adds a supervisor-only read-only Radeon MMIO mapper, exact-domain-gated BAR promotion, PCI identity capture, VBIOS/firmware discovery planning, and GMC/GTT readiness staging. Radeon register reads/writes, firmware upload, command submission, and bus mastering remain fenced pending runtime/bare-metal qualification.
 
-### K14.C26 — Safe hardware/MMIO foundation
+## K14.C8
+Radeon ASIC/IP identification and side-effect-free safe-register-read gate. QEMU qualification requires no physical Radeon and preserves all destructive capabilities fenced.
 
-**Status: QUALIFIED / FROZEN ✅**
+## K14.C9 — Verified Radeon Profiles + Live Safe Identity Reads
 
-Established the final safe reviewed Radeon MMIO foundation, including exact GFX12 `SCRATCH_REG1` identity, reviewed allowlisting, bounded read proof, and zero new uncontrolled MMIO authority.
+C9 adds grounded Navi21 (`1002:73bf`) and Navi48 (`1002:7550`) bring-up profiles and side-effect-free live PCI identity/status reads. Radeon MMIO reads/writes, firmware upload, submission, and bus mastering remain fenced pending exact per-IP MMIO whitelist verification.
 
-### K14.C27 — Complete Radeon driver core
 
-**Status: QUALIFIED / FROZEN ✅**
+## K14.C10
+Per-IP Radeon MMIO whitelist engine and guarded live-read activation gate added; physical offsets remain fail-closed until exact IP-specific review.
 
-Established the persistent Radeon driver object/lifecycle, ForgeBus ownership, resource/topology capture, reviewed MMIO service, software interrupt route/handler accounting, reset/error coordination, and userspace status interface.
 
-### K14.C28 — Memory + firmware + recovery
+## K14.C11
+Reviewed Radeon register definitions and IP-base resolver gate. C10 is frozen; C11 carries AMD-upstream-derived GC/SDMA register indices for Navi 21 and Navi 48, but physical dereference remains fail-closed until trusted per-IP base addresses are resolved.
 
-**Status: QUALIFIED / FROZEN ✅**
 
-Established operational GTT allocation/map/reclaim, VRAM reservations, GPU virtual-address ownership, AMD firmware parsing/CRC/SHA staging, watchdog behavior, and software recovery/resource reclamation.
+## K14.C12
+Trusted Radeon IP-base sources and first bounded live status-read path. QEMU qualification pending. Write-side Radeon paths remain fenced.
 
-### K14.C29 — Rings + queues + fences + DMA
+## K14.C13 — Physical Radeon read-proof qualification
+Status: source-ready; QEMU/runtime qualification pending. C12 remains frozen. C13 adds immutable read evidence, sanity checks, bus-master recheck, and a fail-closed Navi48 discovery-pending state.
 
-**Status: QUALIFIED / FROZEN ✅**
+## K14.C14
+Controlled Radeon write-promotion readiness gate implemented. Actual writes, firmware upload, command submission, and Radeon bus mastering remain disabled pending later qualification.
 
-Established the GTT-backed SDMA ring, submission queue lifecycle, GTT timeline fences, typed SDMA COPY/FENCE packet model, owned-memory DMA/reference executor, and source-reviewed GFX12 SDMA queue authority plan.
 
-### K14.C30 — Complete basic display engine
+## K14.C15
+First controlled write transaction: width-correct 16-bit Radeon PCI Command identity write with readback, bounded rollback, bus-master-off verification, and transaction fingerprinting. Radeon MMIO writes, firmware upload, command submission, and bus-master enable remain fenced.
 
-**Status: QUALIFIED / FROZEN ✅**
+## K14.C16
+Reviewed Radeon MMIO identity-write target gate. Exact target/base remain fail-closed where source-backed data is unavailable.
 
-Established EDID parsing/mode selection, connector/CRTC/plane ownership, double-buffered GTT scanout, verified live GOP framebuffer presents/page flips, atomic current-mode commit/rollback, hotplug bookkeeping, and DCN401 resource authority modeling.
+## K14.C17
+Bounded AMD IP Discovery binary parser and Navi48 exact-base resolution foundation.
 
-Native DCN MMIO programming and physical HPD are not falsely claimed by the QEMU qualification path.
+## K14.C18
+AMD discovery binary/IP-table checksum verifier plus discovery-TMR acquisition contract. Physical snapshot fetch remained fenced.
 
-### K14.C31 — Graphics + compute execution
+## K14.C19
+First bounded physical AMD discovery snapshot acquisition path. Reads source-backed TMR location registers from BAR5, inspects BAR0's current Resizable-BAR size through read-only ECAM, and reads the TMR only when the complete range is already visible. MM_INDEX fallback, Radeon MMIO writes, firmware upload, command submission, and bus-master enable remain fenced.
 
-**Status: QUALIFIED / FROZEN ✅**
 
-Established owned shader/resource upload, typed command buffers, separate compute and graphics queues, verified vector-add compute execution, verified triangle draw/live framebuffer presentation, timeline-fence retirement, shader cache/precache, capability reporting, and the corrected `TWSH` shader wire-header path.
+## K14.C22 — Reversible SCRATCH_REG0 mutation
+Status: qualified/frozen. Fedora/QEMU passed the source/runtime/userspace safe-defer path with automatic intentional-HALT termination. Physical Navi48 execution remains separately qualified on bare metal.
 
-Physical Radeon CP/GFX queue execution and native AMD shader ISA remain separately gated where physical evidence is required.
+## K14.C23 — Post-restore persistence + dual-probe stability
+Status: qualified/frozen. Fedora/QEMU passed the C23 source/runtime/userspace safe-defer path with automatic intentional-HALT termination. Physical Navi48 dual-probe execution remains separately qualified on bare metal.
 
-### K14.C32 — Production/stability + final K14
 
-**Status: QUALIFIED / FROZEN ✅**
+## K14.C24 — Reversible four-bit SCRATCH_REG0 pattern
+Status: qualified/frozen. Fedora/QEMU passed the C24 source/runtime/userspace safe-defer path with automatic intentional-HALT termination. C24 keeps the exact C21-C23 target, requires C23 restoration persistence, applies one deterministic internally-derived four-bit pattern, verifies exact readback, and mandatorily restores the original value. No new register or destructive authority is enabled.
 
-Final qualification passed:
+## K14.C25 — Dual reversible four-bit SCRATCH_REG0 pattern stability
+Status: qualified/frozen. C25 keeps the exact C21-C24 target, requires C24 restoration persistence, performs two distinct internally-derived four-bit pattern/readback/restore cycles with inter-cycle persistence, and keeps all wider Radeon write capabilities fenced.
 
-- queue wrap/stability stress,
-- GTT memory pressure/reclaim and conditional VRAM pressure,
-- deliberate stuck-queue detection/recovery,
-- software interrupt and recovery stress,
-- graphics+compute coexistence,
-- display+compute coexistence,
-- repeated scanout/presentation stability,
-- multi-display framework checks,
-- PCI multi-GPU inventory groundwork,
-- bounded telemetry/performance diagnostics,
-- software power policy,
-- shader-precache contract freeze,
-- syscall-43 userspace GPU ABI/capability freeze,
-- stable `displayd` reporting,
-- stable userspace handoff,
-- intentional halt and final K14 completion markers.
+## K14.C26 — Safe reviewed MMIO foundation / SCRATCH_REG1 read proof
+Status: **qualified/frozen**. Fedora/QEMU passed the source-reviewed GFX12 `SCRATCH_REG1` target at `0x2041` / BASE_IDX 1, same verified GC base-slot/adjacency contract, two-entry reviewed REG0/REG1 MMIO allowlist, bounded read-only REG1 proof, userspace handoff and intentional `[HALT]`. C26 performs zero MMIO writes. The C26 artifact preserves its historical completion marker, but the project owner's locked roadmap supersedes that planning decision: K14 continues through C32 and K15 is ForgeAudio.
 
-The QEMU status intentionally keeps physical Radeon stress qualification separate rather than inheriting it from the reference backend.
+## K14.C27 — Complete Radeon driver core
+Status: **qualified/frozen**. Fedora/QEMU passed C27 operational driver lifecycle/error/reset coordination, exact ForgeBus ownership, live resource/topology capture, permanent identity-based reviewed-MMIO reads with generic-write rejection, the real interrupt-router route/handler self-test, userspace status ABI, stable userspace handoff, `[K14FOUND]`, `[QUAL]`, and intentional `[HALT]`. QEMU contains no physical Radeon, so physical ownership/MMIO remains safely deferred. No TODO/stub/placeholder subsystem is allowed. C27 adds zero new register authority and leaves firmware upload, DMA/bus mastering, command submission and physical interrupt enable fenced.
 
----
+## K14.C28 — Memory + firmware + recovery
+Status: **qualified/frozen**. Fedora/QEMU passed the operational GTT allocation/map/reclaim, BAR0 VRAM reservation/reuse, GPU-VA reservations, AMD firmware common-header + CRC32 validation with SHA-verified staging logic, executable watchdog/resource-safe software recovery, userspace status, `[QUAL]`, and intentional `[HALT]`. QEMU has no physical Radeon, so firmware silicon upload and physical ASIC reset are not claimed. C29 retains exclusive authority for GPU page tables, bus mastering/DMA, rings/queues/fences, command submission, and physical GPU interrupt programming.
 
-## K14 result
+## Locked remainder of K14
+C29 = rings + queues + fences + DMA; C30 = complete basic display engine; C31 = graphics + compute execution; C32 = production/stability + final K14. After C32, K15 begins ForgeAudio.
 
-K14 is now a **frozen foundation**, not an active milestone.
 
-Future graphics work may build above K14, but qualified K14 behavior must not be silently rewritten. Changes to frozen paths are limited to qualification/status metadata and forward-compatible regression fixes that do not invalidate the qualified contract.
+## K14.C29 — Rings + queues + fences + DMA
+Status: **qualified/frozen**. C29 implements the operational driver-side SDMA execution control plane and exact GFX12 queue-0 register plan. QEMU qualifies the real GTT ring/queue/fence/owned-memory executor while physical Radeon SDMA/bus mastering remains safely deferred until actual firmware-in-silicon, GPU address translation and persistent translated IOMMU-domain prerequisites exist. Locked next milestone after C29 freeze: C30 complete basic display engine.
 
-## Next locked milestone
+## K14.C30 — Complete basic display engine
+Status: **qualified/frozen**. Fedora/QEMU passed the C30 display-engine qualification, userspace handoff and intentional HALT on 2026-08-09. C30 consumes frozen C29 and provides the operational basic display engine through the active GOP linear framebuffer, including EDID parsing/mode selection, connector/CRTC/plane ownership, double-buffered GTT scanout and verified live presents, atomic current-mode rollback and hotplug bookkeeping. Source-reviewed DCN401 capabilities are recorded while native DCN register programming and physical HPD remain false. Locked next milestone after C30 freeze: C31 graphics + compute execution.
 
-# K15 — ForgeAudio 🔊
 
-K15 begins Titanweave's native low-latency audio foundation.
+## K14.C31 — Graphics + compute execution
+Status: **qualified/frozen**. Fedora/QEMU passed owned shader/resource upload, separate compute/graphics queues, vector-add compute verification, triangle draw/live framebuffer verification, timeline-fence retirement, shader cache/precache, userspace handoff, intentional HALT and the corrected `TWSH` wire-magic path. Physical Radeon CP/GFX programming and native AMD ISA remain independently gated.
 
-See `README.md`, `PROJECT_VISION.md`, `BUILD_STATUS.md`, and `COMPLETION_MATRIX.md` for the current project-level view.
-
----
-
-## Historical K14 note
-
-K14.A through K14.C25 are preserved as qualified/frozen historical bring-up steps that led to the C26-C32 closure sequence. Earlier status text that described one of those historical steps as the active or final milestone is superseded by the owner-locked roadmap and the successful K14.C32 final qualification.
+## K14.C32 — Production/stability + final K14
+Status: **source-integrated; runtime qualification pending**. C32 executes queue wrap/stress, stuck-queue reset, GTT pressure/reclaim with conditional VRAM pressure, software IRQ and recovery stress, display+compute and graphics+compute coexistence, repeated scanout, multi-display framework checks, PCI multi-GPU inventory, telemetry/performance diagnostics, software power policy, shader-precache freeze and userspace GPU ABI/capability freeze. QEMU must explicitly keep physical Radeon stress unqualified. Passing C32 freezes K14 and unlocks K15 ForgeAudio.

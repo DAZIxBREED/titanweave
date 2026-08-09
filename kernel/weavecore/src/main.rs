@@ -139,6 +139,7 @@ mod process;
 mod package;
 mod percpu;
 mod scheduler;
+mod rt_mutex;
 mod service;
 mod serial;
 mod shared_memory;
@@ -327,6 +328,29 @@ pub extern "C" fn weavecore_entry(boot_info_address: u64) -> ! {
         scheduler_report.ticks,
         scheduler_report.preemptions,
         scheduler_report.tasks_completed
+    ));
+
+    let forgeaudio_rt_report = match scheduler::run_forgeaudio_rt_self_test(
+        &mut allocator,
+        bsp_index,
+        timer_initial_count,
+    ) {
+        Ok(report) => report,
+        Err(error) => {
+            serial::println(format_args!("[FAIL] K15.1 ForgeAudio RT execution foundation failed: {error}"));
+            halt_forever();
+        }
+    };
+    serial::println(format_args!(
+        "[K15RD] ForgeAudio RT ready: tick_hz={} cpu={} jobs={} misses={} budget_exhaustions={} PI={} guard_deferrals={} reserved={}",
+        forgeaudio_rt_report.tick_hz,
+        scheduler::audio_reserved_cpu().unwrap_or(bsp_index),
+        forgeaudio_rt_report.audio_jobs_completed,
+        forgeaudio_rt_report.deadline_misses,
+        forgeaudio_rt_report.budget_exhaustions,
+        forgeaudio_rt_report.priority_inheritance_events,
+        forgeaudio_rt_report.preemption_deferrals,
+        forgeaudio_rt_report.audio_cpu_reserved,
     ));
 
     match display::initialize(boot_info) {

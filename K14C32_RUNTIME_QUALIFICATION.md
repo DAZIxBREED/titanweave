@@ -1,26 +1,5 @@
 # Titanweave K14.C32 Runtime Qualification
 
-Status: **QUALIFIED / FROZEN**
+Status: **PENDING FEDORA/QEMU RUNTIME QUALIFICATION**
 
-Fedora/QEMU runtime qualification passed on 2026-08-09.
-
-K14.C32 production/stability final qualification passed:
-- queue stability
-- memory pressure
-- recovery and interrupt stress
-- graphics+compute and display+compute concurrency
-- display stability
-- power policy
-- telemetry and diagnostics
-- frozen GPU ABI/capabilities
-- shader precache
-- multi-GPU inventory
-- userspace handoff
-- intentional kernel halt
-
-[K14DONE] Titanweave native Radeon driver foundation operational
-
-K14 is COMPLETE / FROZEN.
-K15 ForgeAudio is the next locked Titanweave milestone.
-
-QEMU stopped after intentional Titanweave HALT with raw exit status 0.
+This file is intentionally not marked frozen yet. Replace/update the status only after the C32 halt-aware QEMU checker passes the complete production/stability gate.

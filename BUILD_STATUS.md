@@ -1,77 +1,29 @@
 # Titanweave Build Status
 
-## Current baseline
+K14.C5 is source-integrated from the frozen, QEMU-qualified K14.C4 baseline. All inherited K1-K14.C4 source gates and the new K14.C5 AMD-Vi page-table gate pass in the packaging environment. Userspace assembly builds successfully here. The packaging environment does not contain Cargo/Rust, so full Rust/QEMU runtime qualification must be performed on Fedora before C5 is frozen. Physical Radeon bus mastering, MMIO writes, firmware upload and command submission remain fenced.
 
-**K14.C32 is QUALIFIED / FROZEN. K14 Native Radeon Foundation is COMPLETE.**
+K14.C22: qualified/frozen. Bounded reversible GFX12 SCRATCH_REG0 mutation and exact restoration passed Fedora/QEMU qualification; physical Radeon execution remains a separate bare-metal proof.
 
-The final Fedora/QEMU runtime qualification passed on **2026-08-09** after full source validation and kernel/userspace build.
+K14.C23: qualified/frozen. Fedora/QEMU passed the post-restore persistence and dual-probe stability safe-defer path with automatic intentional-HALT termination.
 
-Final runtime evidence included:
+K14.C24: qualified/frozen from frozen qualified K14.C23. Fedora/QEMU runtime qualification passed the deterministic reversible four-bit SCRATCH_REG0 pattern/readback/restore gate with automatic intentional-HALT termination. Physical Radeon execution remains a separate bare-metal proof.
 
-```text
-PASS  [C32QS] queue stability
-PASS  [C32MP] memory pressure
-PASS  [C32RC] recovery+interrupt stress
-PASS  [C32CX] concurrency
-PASS  [C32MD] display stability
-PASS  [C32PM] power policy
-PASS  [C32TL] telemetry/diagnostics
-PASS  [C32AB] frozen GPU ABI/capabilities
-PASS  [C32PG] final authority
-PASS  [C32RD] K14.C32 production/stability final ready
-PASS  [C32OK] K14.C32 production/stability + final K14
-PASS  [RECV] kernel initialization reached stable userspace handoff
-PASS  [QUAL] K14.C32 production-stability-final runtime reached intentional post-userspace halt
-PASS  [K14DONE] Titanweave native Radeon driver foundation operational
-PASS  [K15NEXT] K15 ForgeAudio is the next locked Titanweave milestone
-PASS  [HALT] BSP halted intentionally
-```
+K14.C25: qualified/frozen from frozen qualified K14.C24. The dual deterministic four-bit SCRATCH_REG0 stability path is frozen by user-confirmed Fedora/QEMU qualification. No additional Radeon register authority was opened.
 
-QEMU stopped after the intentional Titanweave halt with raw exit status `0`.
+K14.C26: qualified/frozen Radeon MMIO foundation. Fedora/QEMU passed exact GFX12 SCRATCH_REG1 (`0x2041`, BASE_IDX 1) resolution, the two-entry reviewed REG0/REG1 MMIO allowlist, bounded read-only REG1 proof with zero C26 MMIO writes, userspace handoff, the historical C26 closure marker, and intentional `[HALT]`. The project owner subsequently locked K14 to continue through C32; K15 remains ForgeAudio.
 
-## Build/validation state
+K14.C27: qualified/frozen operational Radeon driver core. Fedora/QEMU passed the complete C27 driver-core software path, including lifecycle, ForgeBus ownership, live resource/topology, reviewed-MMIO service, executable error/reset coordination, real interrupt-route/handler self-test, userspace handoff, intentional halt, and the C26 foundation-continuation marker. QEMU contains no physical Radeon, so physical ownership/MMIO remains safely deferred. No placeholders/stubs are permitted. C27 adds zero new registers/writes and leaves firmware, DMA/bus mastering, command submission and physical interrupt enable fenced.
 
-- Integrated K1-K14.C32 source validation: **PASS**
-- WeaveCore Rust kernel build: **PASS** on Fedora qualification host
-- Titanweave userspace ELF build: **PASS**
-- TITANFS image generation: **PASS**
-- K14.C32 QEMU production/stability runtime qualification: **PASS**
-- Stable userspace handoff: **PASS**
-- Final K14 completion marker: **PASS**
-- Physical Radeon silicon stress: **SEPARATE BARE-METAL EVIDENCE**, intentionally not inferred from QEMU
 
-## Frozen closure chain
+K14.C28: qualified/frozen from frozen C27. Fedora/QEMU passed the operational memory, firmware-validation/staging, watchdog/recovery, userspace handoff, and intentional-halt path. QEMU has no physical Radeon, so silicon firmware upload, physical ASIC reset, GPU page tables, Radeon DMA/bus mastering, rings/queues, command submission, and physical GPU interrupt programming remain unclaimed and fenced for later milestones. No stubs/placeholders are allowed.
 
-- K14.C26 safe hardware/MMIO foundation: **qualified/frozen**
-- K14.C27 complete Radeon driver core: **qualified/frozen**
-- K14.C28 memory + firmware + recovery: **qualified/frozen**
-- K14.C29 rings + queues + fences + DMA: **qualified/frozen**
-- K14.C30 complete basic display engine: **qualified/frozen**
-- K14.C31 graphics + compute execution: **qualified/frozen**
-- K14.C32 production/stability + final K14: **qualified/frozen**
-- **K14 Native Radeon Foundation: COMPLETE / FROZEN**
 
-## Qualification boundary
+K14.C29: qualified/frozen from frozen C28. Fedora/QEMU passed rings + queues + fences + DMA software/runtime qualification; physical Radeon SDMA execution remains a separate bare-metal proof. Implements the operational GTT-backed SDMA ring, FIFO submission queue, timeline fence, typed SDMA COPY/FENCE codec, owned-memory copy/fence executor, and exact GFX12 SDMA0 queue-0 register plan. Physical SDMA/bus-master activation remains fail-closed until firmware-in-silicon, GPU translation and a persistent translated Radeon IOMMU domain are live. No stubs or raw packet/MMIO authority are allowed.
 
-The QEMU/reference path is real Titanweave execution against owned memory, queues, fences, framebuffer resources, userspace ABIs, recovery logic, and production/stability gates. It is not labeled as physical Radeon silicon execution where no physical device exists.
+K14.C30: qualified/frozen from frozen C29. Fedora/QEMU passed EDID/mode selection, connector/CRTC/plane ownership, double-buffered GTT scanout, live GOP framebuffer page flips, atomic rollback, hotplug bookkeeping, userspace handoff and intentional HALT. Native DCN programming/physical HPD remain separately gated.
 
-Native physical Radeon stress, physical CP/GFX/SDMA execution, native DCN/HPD behavior, and other silicon-specific evidence remain separately qualified where the hardware path requires it.
+K14.C31: qualified/frozen from frozen C30. Fedora/QEMU passed owned shader upload/cache/precache, typed command buffers, separate compute/graphics queues, verified vector-add dispatch, verified triangle draw/live framebuffer present, timeline fences, userspace handoff, intentional HALT and the corrected shader wire-magic path. Physical Radeon CP/GFX queues and native AMD ISA remain separately gated.
 
-## Next milestone
+K14.C32: qualified/frozen final K14 Radeon production/stability baseline. Fedora/QEMU qualification completed the final production/stability stress, hang recovery, memory pressure/reclaim, interrupt/recovery stress, display+compute and graphics+compute coexistence, repeated display presents, multi-display and multi-GPU inventory groundwork, bounded telemetry, software power policy, shader-precache freeze, syscall-43 userspace GPU ABI/capability freeze, and strict physical-evidence separation. K14 is complete; physical Radeon stress remains separately evidenced on bare metal.
 
-**K15 ForgeAudio** is the next locked Titanweave milestone.
-
-## Standard validation/build
-
-```bash
-./tools/validate-source.sh
-PROFILE=debug ./tools/build.sh
-```
-
-Final K14 QEMU qualification runner:
-
-```bash
-./tools/run-k14c32-qemu-production-stability-final.sh
-```
-
-K14 is no longer an active development milestone. Future work builds above the frozen K14 contract.
+K15.1: source-integrated from the frozen/qualified K14.C32 baseline under the locked 16-gate ForgeAudio stone contract. Implements a real `RealtimeAudio` scheduler class, 1 kHz qualification tick, fixed-priority/deadline dispatch, bounded period budgets, deadline tracking, CPU affinity plus an explicit ForgeAudio CPU reservation, a bounded priority-inheriting sleepable RT mutex, bounded preemption guards, temporary-task stack reclamation, an eight-job 4 ms periodic audio workload and competing normal load. All inherited K1-K14 source regressions plus K15.1 source checks pass in the packaging environment. Rust/Cargo and QEMU are unavailable here, so compile/runtime qualification remains pending on the Fedora development host. K15.2 is blocked until K15.1 runtime qualification passes.
