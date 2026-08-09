@@ -91,4 +91,7 @@ C29 = rings + queues + fences + DMA; C30 = complete basic display engine; C31 = 
 
 
 ## K14.C29 — Rings + queues + fences + DMA
-Status: **source-integrated; runtime qualification pending**. C29 implements the operational driver-side SDMA execution control plane and exact GFX12 queue-0 register plan. QEMU qualifies the real GTT ring/queue/fence/owned-memory executor while physical Radeon SDMA/bus mastering remains safely deferred until actual firmware-in-silicon, GPU address translation and persistent translated IOMMU-domain prerequisites exist. Locked next milestone after C29 freeze: C30 complete basic display engine.
+Status: **qualified/frozen**. C29 implements the operational driver-side SDMA execution control plane and exact GFX12 queue-0 register plan. QEMU qualifies the real GTT ring/queue/fence/owned-memory executor while physical Radeon SDMA/bus mastering remains safely deferred until actual firmware-in-silicon, GPU address translation and persistent translated IOMMU-domain prerequisites exist. Locked next milestone after C29 freeze: C30 complete basic display engine.
+
+## K14.C30 — Complete basic display engine
+Status: **source-integrated; runtime qualification pending**. C30 consumes frozen C29 and provides the operational basic display engine through the active GOP linear framebuffer, including EDID parsing/mode selection, connector/CRTC/plane ownership, double-buffered GTT scanout and verified live presents, atomic current-mode rollback and hotplug bookkeeping. Source-reviewed DCN401 capabilities are recorded while native DCN register programming and physical HPD remain false. Locked next milestone after C30 freeze: C31 graphics + compute execution.

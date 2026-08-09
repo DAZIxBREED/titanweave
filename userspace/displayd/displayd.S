@@ -570,6 +570,22 @@ _start:
 .c29_no_radeon:
     TW_WRITE TW_CONSOLE_HANDLE, c29_qemu, C29_QEMU_LEN
 .c29_done:
+    TW_WRITE TW_CONSOLE_HANDLE, k14c30_banner, K14C30_BANNER_LEN
+    mov rax, TW_SYS_NATIVE_GPU_C30_QUERY
+    xor rdi, rdi
+    int 0x80
+    test eax, 0x2000
+    jz .c30_wait
+    test al, 1
+    jz .c30_qemu
+    TW_WRITE TW_CONSOLE_HANDLE, c30_verified, C30_VERIFIED_LEN
+    jmp .c30_done
+.c30_qemu:
+    TW_WRITE TW_CONSOLE_HANDLE, c30_qemu_msg, C30_QEMU_LEN
+    jmp .c30_done
+.c30_wait:
+    TW_WRITE TW_CONSOLE_HANDLE, c30_wait, C30_WAIT_LEN
+.c30_done:
     mov rax, rbx
     test rax, rax
     jz .gpu_none
@@ -1270,4 +1286,21 @@ c29_verified:
     .ascii "[displayd] K14.C29 Radeon ring/queue/fence/DMA control plane verified; raw packets and unprotected bus mastering remain forbidden"
 c29_verified_end:
 .equ C29_VERIFIED_LEN, c29_verified_end - c29_verified
+# K14.C30 complete basic display engine gate.
+k14c30_banner:
+    .ascii "[displayd] K14.C30 complete basic display engine online"
+k14c30_banner_end:
+.equ K14C30_BANNER_LEN, k14c30_banner_end - k14c30_banner
+c30_qemu_msg:
+    .ascii "[displayd] K14.C30 QEMU/GOP backend verified: EDID parser, connector/CRTC/plane model, double-buffered GTT scanout, live framebuffer page flips, atomic mode rollback, and hotplug bookkeeping operational"
+c30_qemu_msg_end:
+.equ C30_QEMU_LEN, c30_qemu_msg_end - c30_qemu_msg
+c30_wait:
+    .ascii "[displayd] K14.C30 display engine not qualified; native DCN/HPD remains fail-closed and firmware scanout must remain available"
+c30_wait_end:
+.equ C30_WAIT_LEN, c30_wait_end - c30_wait
+c30_verified:
+    .ascii "[displayd] K14.C30 basic display engine verified; native DCN programming is not falsely claimed"
+c30_verified_end:
+.equ C30_VERIFIED_LEN, c30_verified_end - c30_verified
 

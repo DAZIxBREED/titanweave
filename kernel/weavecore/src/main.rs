@@ -52,6 +52,10 @@ mod radeon_firmware;
 mod radeon_recovery;
 mod native_gpu_c28;
 mod native_gpu_c29;
+mod radeon_edid;
+mod radeon_dcn401;
+mod radeon_display;
+mod native_gpu_c30;
 mod radeon_sdma_packets;
 mod radeon_ring;
 mod radeon_queue;
@@ -791,6 +795,13 @@ pub extern "C" fn weavecore_entry(boot_info_address: u64) -> ! {
             state.amd_present,state.navi48,state.c28_verified,state.ring_ready,state.queue_ready,state.fence_ready,state.dma_ready,state.dma_bytes,state.sdma_register_plan_verified,state.sdma_gc_base0_resolved,state.hardware_deferred,state.bus_master_enabled,state.physical_sdma_programmed,state.qualified,state.qualification_fingerprint,state.fallback_armed
         )),
         Err(error) => { serial::println(format_args!("[FAIL] K14.C29 Radeon rings+queues+fences+DMA failed: {error}")); halt_forever(); }
+    }
+    match native_gpu_c30::initialize(&mut allocator, boot_info) {
+        Ok(state) => serial::println(format_args!(
+            "[C30OK] K14.C30 complete basic display engine: amd_present={} C29={} connectors={} active={} mode={}x{} EDID={} scanout={} flips={} modeset={} hotplug={} DCN401={} native_DCN={} qualified={} fingerprint={:#018x} fallback={}",
+            state.amd_present,state.c29_verified,state.connector_count,state.active_connector,state.width,state.height,state.edid_verified,state.scanout_verified,state.flips,state.atomic_modeset_verified,state.hotplug_verified,state.dcn401_source_reviewed,state.native_dcn_programmed,state.qualified,state.fingerprint,state.fallback_armed
+        )),
+        Err(error) => { serial::println(format_args!("[FAIL] K14.C30 complete basic display engine failed: {error}")); halt_forever(); }
     }
     match vfs::log_directory(b"C:\\SYSTEM\\SERVICES") {
         Ok(count) => serial::println(format_args!(

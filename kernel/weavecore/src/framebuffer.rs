@@ -122,6 +122,48 @@ impl Framebuffer {
         }
     }
 
+
+    /// Copy packed XRGB8888 pixels into the live firmware scanout.  This is the
+    /// operational C30 fallback-present backend: every destination write remains
+    /// bounds checked and volatile so the device sees the update.
+    pub fn copy_xrgb8888(&mut self, source: u64, source_stride_bytes: u32, width: u32, height: u32) -> Result<u64, &'static str> {
+        if source == 0 || source_stride_bytes < width.saturating_mul(4) { return Err("invalid C30 scanout source"); }
+        let copy_w = width.min(self.width);
+        let copy_h = height.min(self.height);
+        let mut hash = 0xcbf29ce484222325u64;
+        for y in 0..copy_h {
+            for x in 0..copy_w {
+                let src_off = u64::from(y).saturating_mul(u64::from(source_stride_bytes)).saturating_add(u64::from(x) * 4);
+                // SAFETY: C30 only passes mapped, owned GTT scanout objects whose
+                // complete dimensions were checked before this call.
+                let pixel = unsafe { core::ptr::read_volatile((source + src_off) as *const u32) };
+                let r = ((pixel >> 16) & 0xff) as u8; let g = ((pixel >> 8) & 0xff) as u8; let b = (pixel & 0xff) as u8;
+                let packed = match self.format {
+                    PixelFormat::Rgbx8888 => u32::from_le_bytes([r,g,b,0]),
+                    PixelFormat::Bgrx8888 => u32::from_le_bytes([b,g,r,0]),
+                };
+                let dst_index = u64::from(y).saturating_mul(u64::from(self.stride)).saturating_add(u64::from(x));
+                let dst_off = dst_index.saturating_mul(4);
+                if dst_off.saturating_add(4) > self.byte_size { return Err("C30 framebuffer copy exceeded scanout bounds"); }
+                unsafe { core::ptr::write_volatile((self.base + dst_off) as *mut u32, packed); }
+                if (x & 127)==0 && (y & 63)==0 { hash ^= u64::from(packed); hash = hash.wrapping_mul(0x100000001b3); }
+            }
+        }
+        Ok(hash)
+    }
+
+    /// Read a sparse fingerprint from the live scanout after a C30 present.
+    pub fn sample_hash(&self) -> u64 {
+        let mut h=0xcbf29ce484222325u64;
+        let xs=[0,self.width/4,self.width/2,self.width.saturating_sub(1)];
+        let ys=[0,self.height/4,self.height/2,self.height.saturating_sub(1)];
+        for y in ys { for x in xs {
+            let off=(u64::from(y)*u64::from(self.stride)+u64::from(x))*4;
+            if off+4<=self.byte_size { let v=unsafe{core::ptr::read_volatile((self.base+off) as *const u32)};h^=u64::from(v);h=h.wrapping_mul(0x100000001b3); }
+        }}
+        h
+    }
+
     /// Draw the K13 fallback boot card.  This is intentionally geometric rather
     /// than a baked bitmap; DISPLAYD will own branded resources after bootstrap.
     pub fn draw_boot_card(&mut self) {

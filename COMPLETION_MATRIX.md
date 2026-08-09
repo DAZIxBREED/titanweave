@@ -42,4 +42,7 @@ Qualified/frozen. Fedora/QEMU passed the operational GTT allocation/map/reclaim,
 
 
 ## K14.C29 — Rings + queues + fences + DMA
-Qualified/frozen. Fedora/QEMU runtime qualification passed. Real GTT ring backing, FIFO submission lifecycle, GTT timeline fences, typed source-backed SDMA COPY/FENCE packets, and bounded owned-memory DMA execution are implemented. Physical Radeon SDMA remains fail-closed behind real firmware/translation/IOMMU prerequisites.
+Qualified/frozen. Real GTT ring backing, FIFO submission lifecycle, GTT timeline fences, typed source-backed SDMA COPY/FENCE packets, and bounded owned-memory DMA execution are implemented. Physical Radeon SDMA remains fail-closed behind real firmware/translation/IOMMU prerequisites.
+
+## K14.C30 — Complete basic display engine
+Source-integrated; runtime qualification pending. Operational GOP-backed scanout, EDID/mode engine, connector/CRTC/plane ownership, double-buffer page flips, atomic current-mode commit/rollback, hotplug journal and DCN401 reviewed capability boundary are implemented. Native DCN/HPD is not falsely claimed.
