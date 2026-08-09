@@ -48,3 +48,5 @@ jobs:
           git add -A
           git commit -m 'Import frozen K14.C26-C27 integrated source overlay'
           git push origin HEAD:main
+
+# Triggered explicitly after PR #17 merge so the workflow exists in the parent main commit.
