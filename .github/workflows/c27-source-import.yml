@@ -1,0 +1,50 @@
+name: Import frozen K14.C27 source overlay
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  import-c27:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct and verify C26+C27 overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .repo-import/c27-overlay.part-00
+          test -f .repo-import/c27-overlay.part-03
+          test ! -e .repo-import/c27-overlay.part-04
+          cat .repo-import/c27-overlay.part-* | tr -d '\r\n' | base64 --decode > /tmp/c27-overlay.tar.gz
+          echo '121371f5ceefb114b210d42d65c9deaf47ebd0fc217b35e05d854b724fe7d1c2  /tmp/c27-overlay.tar.gz' | sha256sum -c -
+          tar -tzf /tmp/c27-overlay.tar.gz >/dev/null
+
+      - name: Apply frozen C26+C27 source overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -xzf /tmp/c27-overlay.tar.gz -C .
+          test -f kernel/weavecore/src/native_gpu_c26.rs
+          test -f kernel/weavecore/src/native_gpu_c27.rs
+          test -f kernel/weavecore/src/radeon_driver.rs
+          test -f kernel/weavecore/src/radeon_mmio.rs
+          test -f kernel/weavecore/src/radeon_resources.rs
+          test -f K14C27_RUNTIME_QUALIFICATION.md
+          sha256sum -c SOURCE_MANIFEST.sha256
+          rm -rf .repo-import
+          rm -f .github/workflows/c27-source-import.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Import frozen K14.C26-C27 integrated source overlay'
+          git push origin HEAD:main
