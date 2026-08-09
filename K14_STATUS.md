@@ -72,4 +72,7 @@ Status: qualified/frozen. Fedora/QEMU passed the C23 source/runtime/userspace sa
 
 
 ## K14.C24 — Reversible four-bit SCRATCH_REG0 pattern
-Status: source-integrated; runtime qualification pending. C24 keeps the exact C21-C23 target, requires C23 restoration persistence, applies one deterministic internally-derived four-bit pattern, verifies exact readback, and mandatorily restores the original value. No new register or destructive authority is enabled.
+Status: qualified/frozen. Fedora/QEMU passed the C24 source/runtime/userspace safe-defer path with automatic intentional-HALT termination. C24 keeps the exact C21-C23 target, requires C23 restoration persistence, applies one deterministic internally-derived four-bit pattern, verifies exact readback, and mandatorily restores the original value. No new register or destructive authority is enabled.
+
+## K14.C25 — Dual reversible four-bit SCRATCH_REG0 pattern stability
+Status: source-integrated; runtime qualification pending. C25 keeps the exact C21-C24 target, requires C24 restoration persistence, performs two distinct internally-derived four-bit pattern/readback/restore cycles with inter-cycle persistence, and keeps all wider Radeon write capabilities fenced.

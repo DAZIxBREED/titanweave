@@ -490,6 +490,22 @@ _start:
 .c24_no_radeon:
     TW_WRITE TW_CONSOLE_HANDLE, c24_qemu, C24_QEMU_LEN
 .c24_done:
+    TW_WRITE TW_CONSOLE_HANDLE, k14c25_banner, K14C25_BANNER_LEN
+    mov rax, TW_SYS_NATIVE_GPU_C25_QUERY
+    xor rdi, rdi
+    int 0x80
+    test al, 1
+    jz .c25_no_radeon
+    test eax, 0x2000
+    jnz .c25_verified
+    TW_WRITE TW_CONSOLE_HANDLE, c25_wait, C25_WAIT_LEN
+    jmp .c25_done
+.c25_verified:
+    TW_WRITE TW_CONSOLE_HANDLE, c25_verified, C25_VERIFIED_LEN
+    jmp .c25_done
+.c25_no_radeon:
+    TW_WRITE TW_CONSOLE_HANDLE, c25_qemu, C25_QEMU_LEN
+.c25_done:
     mov rax, rbx
     test rax, rax
     jz .gpu_none
@@ -1100,3 +1116,21 @@ c24_verified:
     .ascii "[displayd] K14.C24 four-bit SCRATCH_REG0 pattern and exact restoration verified with Radeon bus mastering off"
 c24_verified_end:
 .equ C24_VERIFIED_LEN, c24_verified_end - c24_verified
+
+# K14.C25 two distinct four-bit pattern cycles on the exact frozen SCRATCH_REG0 target.
+k14c25_banner:
+    .ascii "[displayd] K14.C25 GFX12 SCRATCH_REG0 dual multi-bit pattern stability gate online"
+k14c25_banner_end:
+.equ K14C25_BANNER_LEN, k14c25_banner_end - k14c25_banner
+c25_qemu:
+    .ascii "[displayd] K14.C25 no physical Radeon in QEMU; dual multi-bit pattern stability transaction remains safely deferred"
+c25_qemu_end:
+.equ C25_QEMU_LEN, c25_qemu_end - c25_qemu
+c25_wait:
+    .ascii "[displayd] K14.C25 Radeon present; waiting for C24 pattern proof and dual four-bit pattern/restore stability"
+c25_wait_end:
+.equ C25_WAIT_LEN, c25_wait_end - c25_wait
+c25_verified:
+    .ascii "[displayd] K14.C25 dual four-bit SCRATCH_REG0 pattern cycles and exact restoration verified with Radeon bus mastering off"
+c25_verified_end:
+.equ C25_VERIFIED_LEN, c25_verified_end - c25_verified
