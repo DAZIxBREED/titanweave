@@ -3,7 +3,7 @@ name: Import frozen K14.C24 source snapshot
 on:
   push:
     branches:
-      - agent/full-c24-source-tree
+      - main
 
 permissions:
   contents: write
@@ -13,7 +13,7 @@ jobs:
     if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Check out staging branch
+      - name: Check out main
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -65,7 +65,7 @@ jobs:
 
           printf '%s\n' "$SRC" > /tmp/c24-source-root
 
-      - name: Replace branch with complete integrated source tree
+      - name: Replace main with complete integrated source tree
         shell: bash
         run: |
           set -euo pipefail
@@ -88,4 +88,4 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git commit -m 'Import complete frozen K14.C24 integrated source tree'
-          git push origin HEAD:agent/full-c24-source-tree
+          git push origin HEAD:main
