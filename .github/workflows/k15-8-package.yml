@@ -5,6 +5,8 @@ on:
     branches: [k15-8]
     paths:
       - '.github/workflows/k15-8-package.yml'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
