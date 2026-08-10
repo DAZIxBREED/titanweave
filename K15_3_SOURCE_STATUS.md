@@ -1,8 +1,10 @@
 # Titanweave K15.3 ForgeAudio Audio DMA Transport — Source Status
 
-Status: **SOURCE-INTEGRATED / RUNTIME QUALIFICATION PENDING**
+Status: **QUALIFIED / FROZEN**
 
 Baseline: qualified/frozen K15.2.
+
+Fedora/QEMU runtime qualification passed on 2026-08-09. K15.3 is frozen and K15.4 is unlocked.
 
 Implemented in this gate:
 
@@ -20,4 +22,4 @@ Implemented in this gate:
 - explicit no-audio-hardware / no-fake-DMA qualification semantics;
 - K15.3 source and serial qualification tools.
 
-The packaging environment has no Rust/Cargo/QEMU. Source validation is run here; Fedora/QEMU must compile and runtime-qualify the gate before it is frozen and before K15.4 begins.
+K15.3 is frozen. K15.4 — Real HDA Hardware Backend is the active gate.

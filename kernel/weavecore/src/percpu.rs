@@ -42,6 +42,15 @@ pub fn bsp_index() -> usize {
     BSP_LOGICAL_INDEX.load(Ordering::Acquire)
 }
 
+#[must_use]
+pub fn apic_id(cpu_index: usize) -> Option<u32> {
+    if cpu_index >= MAX_CPUS || !CPUS[cpu_index].online.load(Ordering::Acquire) {
+        return None;
+    }
+    let value = CPUS[cpu_index].apic_id.load(Ordering::Acquire);
+    if value == u32::MAX { None } else { Some(value) }
+}
+
 pub fn set_current_task(cpu_index: usize, task_id: u32) {
     CPUS[cpu_index]
         .current_task

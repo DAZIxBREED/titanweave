@@ -66,6 +66,8 @@ const VTD_IOTLB_IIRG_GLOBAL: u64 = 1 << 60;
 
 const VTD_ROOT_PRESENT: u64 = 1 << 0;
 const VTD_CONTEXT_PRESENT: u64 = 1 << 0;
+const VTD_CONTEXT_TT_PASS_THROUGH: u64 = 2 << 2;
+const VTD_ECAP_PASS_THROUGH: u64 = 1 << 6;
 const VTD_SL_READ: u64 = 1 << 0;
 const VTD_SL_WRITE: u64 = 1 << 1;
 const VTD_ADDRESS_MASK: u64 = 0x000f_ffff_ffff_f000;
@@ -163,6 +165,28 @@ impl TablePages {
             0,
         );
         let context_low = self.slpt_root() | VTD_CONTEXT_PRESENT;
+        let context_high = ((domain_id as u64) << 8) | self.aw;
+        write_u64_pair(
+            self.context + (devfn as u64) * 16,
+            context_low,
+            context_high,
+        );
+        flush_page(self.root);
+        flush_page(self.context);
+    }
+
+    fn install_pass_through_context(self, requester: RequesterId, domain_id: u16) {
+        let bus = (requester.0 >> 8) as usize;
+        let devfn = (requester.0 & 0xff) as usize;
+        write_u64_pair(
+            self.root + (bus as u64) * 16,
+            self.context | VTD_ROOT_PRESENT,
+            0,
+        );
+        // Intel VT-d legacy context Translation Type 10b is pass-through.
+        // ASR/SLPTPTR is ignored in this mode; AW must still name the largest
+        // supported adjusted guest-address width.
+        let context_low = VTD_CONTEXT_PRESENT | VTD_CONTEXT_TT_PASS_THROUGH;
         let context_high = ((domain_id as u64) << 8) | self.aw;
         write_u64_pair(
             self.context + (devfn as u64) * 16,
@@ -617,6 +641,249 @@ fn cleanup_persistent_error(
     let _ = forgebus::release_dma(allocator, device, destination);
     tables.release(allocator);
     Err(error)
+}
+
+
+/// One bounded device-visible region for a temporary translated-DMA window.
+///
+/// K15.4 uses this to qualify a real HDA requester without weakening K15.3's
+/// rule that production audio DMA must be translated by the platform IOMMU.
+#[derive(Clone, Copy, Debug)]
+pub struct TemporaryDmaRegion {
+    pub physical_base: u64,
+    pub byte_length: u64,
+    pub iova_base: u64,
+    pub device_read: bool,
+    pub device_write: bool,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct TemporaryTranslatedDomain {
+    pub requester: u16,
+    pub domain_id: u16,
+    pub generation: u32,
+    pub mapped_pages: u32,
+    pub hardware_translated: bool,
+}
+
+#[derive(Clone, Copy)]
+struct BusMasterSnapshot {
+    function: PciFunction,
+    was_enabled: bool,
+    occupied: bool,
+}
+impl BusMasterSnapshot {
+    const EMPTY: Self = Self {
+        function: PciFunction { bus: 0, device: 0, function: 0, vendor_id: 0, device_id: 0,
+            class_code: 0, subclass: 0, programming_interface: 0, revision: 0, header_type: 0 },
+        was_enabled: false,
+        occupied: false,
+    };
+}
+
+/// Execute one bounded hardware operation while an exact PCI requester owns a
+/// real Intel VT-d second-level domain.  This is intentionally a scoped window:
+/// every non-target PCI bus master is quiesced before translation is enabled,
+/// the target is enabled only after all mappings exist, and the complete state
+/// is revoked before this function returns.
+///
+/// The callback must stop the device DMA engine before returning.  K15.4 uses
+/// this for CORB/RIRB and HDA stream DMA qualification.  The scoped lifetime is
+/// deliberate until a later ForgeAudio gate owns a persistent server lifetime.
+pub fn with_temporary_translated_domain<R>(
+    allocator: &mut FrameAllocator<'_>,
+    kernel_cr3: u64,
+    function: PciFunction,
+    domain_id: u16,
+    generation: u32,
+    regions: &[TemporaryDmaRegion],
+    operation: impl FnOnce(TemporaryTranslatedDomain) -> Result<R, &'static str>,
+) -> Result<R, &'static str> {
+    if domain_id == 0 || generation == 0 { return Err("temporary DMA domain identity is invalid"); }
+    if regions.is_empty() || regions.len() > 32 { return Err("temporary DMA region count is outside bounds"); }
+    if k11_backends::active_iommu() != k11_backends::ActiveIommu::IntelVtd {
+        return Err("temporary translated DMA currently requires Intel VT-d");
+    }
+    let register_base = k11_backends::intel_primary_register_base().ok_or("VT-d DRHD register base unavailable")?;
+    let mut vtd = IntelVtdHardware::map(allocator, kernel_cr3, register_base)?;
+    let tables = TablePages::allocate(allocator, vtd.cap)?;
+    tables.install_walk();
+    let requester = PciAddress::new(0, function.bus, function.device, function.function)?.requester_id();
+    tables.install_root_context(requester, domain_id);
+
+    // Build the complete second-level map before touching PCI command state.
+    // The closure keeps every checked-arithmetic/map failure inside a scope so
+    // TablePages can always be reclaimed by the outer error path.
+    let mapping_result = (|| -> Result<u32, &'static str> {
+        let mut mapped_pages = 0u32;
+        for (index, region) in regions.iter().enumerate() {
+            if region.physical_base == 0 || region.byte_length == 0 || region.iova_base == 0 {
+                return Err("temporary DMA region contains an empty address/range");
+            }
+            if region.physical_base & (FRAME_SIZE - 1) != 0 || region.iova_base & (FRAME_SIZE - 1) != 0 {
+                return Err("temporary DMA region must be 4 KiB aligned");
+            }
+            if !region.device_read && !region.device_write {
+                return Err("temporary DMA region has no device permissions");
+            }
+            let pages = region.byte_length
+                .checked_add(FRAME_SIZE - 1)
+                .ok_or("temporary DMA region rounding overflow")? / FRAME_SIZE;
+            let span = pages.checked_mul(FRAME_SIZE).ok_or("temporary DMA IOVA span overflow")?;
+            let end = region.iova_base.checked_add(span).ok_or("temporary DMA IOVA end overflow")?;
+            if end > 0x0020_0000 { return Err("temporary DMA IOVA exceeds qualified 2 MiB window"); }
+            for other in regions.iter().take(index) {
+                let other_pages = other.byte_length
+                    .checked_add(FRAME_SIZE - 1)
+                    .ok_or("temporary DMA region rounding overflow")? / FRAME_SIZE;
+                let other_span = other_pages.checked_mul(FRAME_SIZE).ok_or("temporary DMA IOVA span overflow")?;
+                let other_end = other.iova_base.checked_add(other_span).ok_or("temporary DMA IOVA end overflow")?;
+                if region.iova_base < other_end && other.iova_base < end {
+                    return Err("temporary DMA IOVA regions overlap");
+                }
+            }
+            for page in 0..pages {
+                let page_offset = page.checked_mul(FRAME_SIZE).ok_or("temporary DMA page offset overflow")?;
+                let iova = region.iova_base.checked_add(page_offset).ok_or("temporary DMA page IOVA overflow")?;
+                let physical = region.physical_base.checked_add(page_offset).ok_or("temporary DMA physical span overflow")?;
+                tables.map_4k(iova, physical, region.device_read, region.device_write)?;
+                mapped_pages = mapped_pages.saturating_add(1);
+            }
+        }
+        Ok(mapped_pages)
+    })();
+    let mapped_pages = match mapping_result {
+        Ok(value) => value,
+        Err(error) => { tables.release(allocator); return Err(error); }
+    };
+
+    // Preserve already-live devices while this temporary root table is active.
+    // K13 VirtIO-GPU and storage may already own DMA-capable queues at K15.4;
+    // toggling their PCI bus-master bit or exposing them to a root table with no
+    // context can poison the frozen K13/K14 runtime. Intel VT-d pass-through
+    // contexts preserve their exact preexisting DMA authority while HDA alone
+    // uses second-level translated IOVAs.
+    if vtd.ecap & VTD_ECAP_PASS_THROUGH == 0 {
+        tables.release(allocator);
+        return Err("temporary translated DMA coexistence requires VT-d pass-through support");
+    }
+    let mut snapshots = [BusMasterSnapshot::EMPTY; 256];
+    let mut snapshot_count = 0usize;
+    let mut snapshot_overflow = false;
+    let mut unsupported_active_bus = false;
+    let target_requester = requester.0;
+    let pass_domain = domain_id.wrapping_add(1).max(1);
+    let mut passthrough_count = 0u16;
+    pci::enumerate(|candidate| {
+        if snapshot_count >= snapshots.len() {
+            snapshot_overflow = true;
+            return;
+        }
+        let command = pci::read_u16(candidate.bus, candidate.device, candidate.function, 0x04);
+        let enabled = command & (1 << 2) != 0;
+        snapshots[snapshot_count] = BusMasterSnapshot { function: candidate, was_enabled: enabled, occupied: true };
+        snapshot_count += 1;
+        if !enabled { return; }
+        let Ok(address) = PciAddress::new(0, candidate.bus, candidate.device, candidate.function) else {
+            unsupported_active_bus = true;
+            return;
+        };
+        let rid = address.requester_id();
+        if rid.0 == target_requester { return; }
+        // TablePages intentionally has one legacy context page. It can safely
+        // preserve all active peers on the HDA bus; a different active bus is
+        // refused rather than aliasing devfn entries across root slots.
+        if candidate.bus != function.bus {
+            unsupported_active_bus = true;
+            return;
+        }
+        tables.install_pass_through_context(rid, pass_domain);
+        passthrough_count = passthrough_count.saturating_add(1);
+    });
+    if snapshot_overflow {
+        tables.release(allocator);
+        return Err("temporary translated DMA PCI snapshot capacity exceeded");
+    }
+    if unsupported_active_bus {
+        tables.release(allocator);
+        return Err("temporary translated DMA found active bus master outside qualified HDA bus");
+    }
+    serial::println(format_args!(
+        "[IOMP] temporary translated coexistence: target_requester={:#06x} passthrough_busmasters={} unrelated_busmasters_untouched=true",
+        requester.0, passthrough_count
+    ));
+
+    pci::enable_memory_decode(function);
+    pci::disable_bus_master(function);
+    if let Err(error) = vtd.set_root_table(tables.root) {
+        tables.release(allocator);
+        return Err(error);
+    }
+    vtd.clear_faults();
+    if let Err(error) = vtd.enable_translation() {
+        pci::disable_bus_master(function);
+        tables.clear_context(requester);
+        let _ = vtd.invalidate_context_global();
+        let _ = vtd.invalidate_iotlb_global();
+        let _ = vtd.disable_translation();
+        vtd.clear_faults();
+        tables.release(allocator);
+        return Err(error);
+    }
+    pci::enable_bus_master(function);
+
+    serial::println(format_args!(
+        "[IOMA] temporary translated device domain armed: requester={:#06x} domain={} generation={} pages={} target_bus_master=true",
+        requester.0, domain_id, generation, mapped_pages
+    ));
+
+    let domain = TemporaryTranslatedDomain {
+        requester: requester.0,
+        domain_id,
+        generation,
+        mapped_pages,
+        hardware_translated: true,
+    };
+    let operation_result = operation(domain);
+
+    // Revoke DMA before tearing down translation, regardless of callback result.
+    pci::disable_bus_master(function);
+    tables.clear_context(requester);
+    let context_result = vtd.invalidate_context_global();
+    let iotlb_result = vtd.invalidate_iotlb_global();
+    let disable_result = vtd.disable_translation();
+    vtd.clear_faults();
+    let mut peer_busmasters_preserved = true;
+    for snapshot in &snapshots[..snapshot_count] {
+        if !snapshot.occupied { continue; }
+        if snapshot.function.bus == function.bus
+            && snapshot.function.device == function.device
+            && snapshot.function.function == function.function
+        {
+            continue;
+        }
+        let command = pci::read_u16(
+            snapshot.function.bus, snapshot.function.device, snapshot.function.function, 0x04
+        );
+        if (command & (1 << 2) != 0) != snapshot.was_enabled {
+            peer_busmasters_preserved = false;
+            break;
+        }
+    }
+    tables.release(allocator);
+    if !peer_busmasters_preserved {
+        return Err("temporary translated DMA changed unrelated PCI bus-master state");
+    }
+
+    serial::println(format_args!(
+        "[IOMV] temporary translated device domain revoked: requester={:#06x} domain={} target_bus_master=false translation=false peers_preserved=true",
+        requester.0, domain_id
+    ));
+
+    if context_result.is_err() { return Err("temporary DMA context invalidation failed"); }
+    if iotlb_result.is_err() { return Err("temporary DMA IOTLB invalidation failed"); }
+    if disable_result.is_err() { return Err("temporary DMA translation disable failed"); }
+    operation_result
 }
 
 fn find_edu() -> Option<PciFunction> {

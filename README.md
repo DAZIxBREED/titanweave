@@ -1,65 +1,105 @@
-# TITAN//WEAVE — WeaveCore K14 Native GPU Bring-up
+# Titanweave OS
 
-K14 forks from frozen, qualified GPU/runtime milestones. K13 remains the generic ForgeGraphics/VirtIO/GOP safety baseline; K14 adds native physical-GPU ownership without weakening those fallbacks.
+**A ground-up 64-bit operating system focused on performance, gaming, creators, low-latency media, hardware freedom, and practical compatibility.**
 
-## Current slice: K14.C5
+Titanweave is not a Linux distribution, a Unix derivative, or a Windows modification. It is an independent operating-system project built around **WeaveCore**, with its own kernel, driver model, graphics stack, storage direction, userspace, and long-term compatibility architecture.
 
-K14.A established read-only native GPU discovery and fail-closed DMA admission. K14.B proved real Intel VT-d translated DMA and IOVA revocation. K14.C1 now adds AMD-first native GPU selection, ForgeBus ownership, non-destructive BAR inventory, backend-neutral VRAM/GTT ownership, and DISPLAYD binding visibility.
+The project takes inspiration from the directness and modularity of systems such as OS/2 while targeting a modern desktop for gamers, artists, DJs, developers, VR users, and high-performance workstation owners.
 
-K14.C1 deliberately does **not** enable native GPU bus mastering or write vendor MMIO. K14.B's translation qualification is short-lived; K14.C2 must bind and retain a translated domain for the exact physical GPU requester before Radeon firmware/command-ring work begins.
+## What Titanweave is trying to do
 
-See `docs/architecture/K14.md`, `K14_STATUS.md`, `K14C5_IMPLEMENTATION.md`, and `K14C5_TESTER_GUIDE.md`.
+Titanweave is designed around capabilities that are difficult to bolt onto a mature operating system after the fact:
 
-## Validate and test
+- **Performance by design** — explicit scheduling, ownership, DMA, memory, and latency behavior instead of hidden background overhead.
+- **Gaming as a first-class workload** — shader precaching, predictable scheduling, fast asset access, low-overhead graphics paths, and practical Windows-software compatibility through clean-room translation.
+- **Multi-GPU from the architecture upward** — multiple GPUs are intended to become schedulable resources, including mixed-vendor systems, rather than a late compatibility feature.
+- **Creator and DJ workflows as first-class workloads** — ForgeAudio is the native low-latency audio foundation for professional routing, DJ hardware, media, capture, streaming, and production workflows.
+- **VR as a first-class platform** — display, graphics, audio, timing, input, and scheduling are intended to support VR directly.
+- **Easy driver development** — ForgeBus and capability-scoped hardware interfaces are intended to make custom drivers understandable, testable, and safer to build.
+- **Native accelerator direction** — long-term support for AMD HIP/ROCm-class, NVIDIA CUDA/OptiX-class, and Intel/Embree-class workloads while keeping Titanweave interfaces vendor-neutral where practical.
+- **System RAM as a performance tier** — abundant DDR4/DDR5 can be assigned to storage caching and other high-throughput workloads rather than sitting idle.
+- **Modern storage without sacrificing boot compatibility** — FAT32 is isolated to the EFI System Partition where firmware requires it; internal storage is not forced to use firmware-era formats.
 
-```bash
-./tools/validate-source.sh
-PROFILE=debug ./tools/build.sh
-./tools/run-k14c1-qemu-native-binding.sh
+The ambition is intentionally larger than the currently completed implementation. Titanweave documents what is **implemented**, what is **runtime-qualified**, what is **frozen**, and what remains **future work** instead of presenting roadmap goals as finished features.
+
+See [`PROJECT_VISION.md`](PROJECT_VISION.md) for the long-form direction and [`CURRENT_STATUS.md`](CURRENT_STATUS.md) for the current development gate.
+
+---
+
+## Current status
+
+### K14 — Native Radeon foundation: **COMPLETE / QUALIFIED / FROZEN ✅**
+
+K14.C32 passed Fedora/QEMU production/stability qualification on 2026-08-09 through the final post-userspace completion markers, including:
+
+```text
+[C32OK] K14.C32 production/stability + final K14
+[QUAL] K14.C32 production-stability-final runtime reached intentional post-userspace halt
+[K14DONE] Titanweave native Radeon driver foundation operational
+[K15NEXT] K15 ForgeAudio is the next locked Titanweave milestone
+[HALT] BSP halted intentionally
 ```
 
-Frozen K14.B remains separate and must not be overwritten.
+QEMU stopped after Titanweave's intentional halt with raw exit status `0`. Physical Radeon silicon stress remains a separately evidenced bare-metal qualification and is not falsely inferred from QEMU.
 
+### K15 — ForgeAudio: **IN PROGRESS 🔊**
 
-## K14.C2
-Persistent translated-domain lifetime proof plus AMD-first firmware/ring bring-up contract. QEMU uses EDU only as an IOMMU requester surrogate; native Radeon MMIO/DMA remains fail-closed.
+ForgeAudio is governed by the locked 16-gate contract in [`K15_STONE_CONTRACT.md`](K15_STONE_CONTRACT.md).
 
-## K14.C3
-Radeon bare-metal bring-up staging: AMD IP/firmware/MMIO safety contract with exact-requester translated-domain gating. Native Radeon command submission remains fenced pending bare-metal domain qualification.
+| Gate | Scope | Status |
+|---|---|---|
+| K15.1 | Real-Time Audio Execution Foundation | **FROZEN ✅** |
+| K15.2 | ForgeAudio Kernel ABI | **FROZEN ✅** |
+| K15.3 | Audio DMA Transport | **FROZEN ✅** |
+| K15.4 | Real HDA Hardware Backend | **FROZEN ✅** |
+| K15.5 | PCM Format Engine | **NEXT 🔊** |
+| K15.6–K15.16 | ForgeAudio production stack and final qualification | **LOCKED** |
 
-## K14.C4
+K15.4 consumes the frozen K15.3 transport and adds real PCI HDA discovery and ownership, BAR/MMIO reset, CORB/RIRB command transport, codec/widget discovery, BDL/stream descriptors, translated data DMA, MSI/interrupt completion, playback/capture proof, and real ForgeAudio device/endpoint registration. It deliberately uses one fixed 48 kHz / signed-16 / stereo qualification format so K15.5 remains the PCM Format Engine as defined by the stone contract.
 
-K14.C4 adds the exact Radeon requester / AMD-Vi qualification gate. QEMU exercises the fail-closed contract; bare-metal AMD qualification is required before the physical Radeon can receive a persistent translated domain or bus-master authority.
+---
 
-## K14.C5
+## Architecture direction
 
-K14.C5 adds the AMD-Vi page-table engine foundation: pinned device table, second-level root, command/event buffers, exact Radeon requester DTE image, and default-deny fault-state plumbing. Physical AMD-Vi register programming remains a bare-metal qualification gate.
+### Kernel and hardware
 
+- **WeaveCore** 64-bit kernel
+- capability-scoped hardware access
+- ForgeBus device and driver ownership
+- bounded, fail-closed hardware bring-up
+- explicit DMA/IOMMU ownership
+- stable userspace hardware ABIs after qualification
+- multi-GPU inventory and future scheduling
 
-## K14.C6
-Live AMD-Vi hardware-programming boundary added; QEMU must remain fail-closed and bare-metal activation is separately gated.
+### Graphics
 
-### K14.C9
-Verified Radeon device-profile and live safe PCI identity-read foundation. Native GPU MMIO access remains fail-closed until exact per-IP register whitelists are verified.
+K14 established the native Radeon foundation through memory/firmware/recovery, queues/fences/DMA, display, graphics/compute execution, and production/stability gates. QEMU reference execution and physical-silicon evidence remain explicitly distinguished.
 
+### Audio
 
-## K14.C10
-Per-IP Radeon MMIO whitelist engine and guarded live-read activation gate added; physical offsets remain fail-closed until exact IP-specific review.
+K15 ForgeAudio is building the native audio stack in sixteen frozen gates: real-time execution, kernel ABI, DMA transport, HDA hardware, PCM formats, ForgeAudioD, lock-free transport, graph execution, sample-accurate switching, clocks/synchronization, resampling, full duplex, routing/mixing/monitoring, latency/XRUN handling, fault recovery/hotplug, and final production qualification.
 
+### Storage
 
-### Active milestone: K14.C11
-C11 adds source-reviewed Radeon status-register definitions and an explicit IP-relative register-address resolver. Physical MMIO reads remain fenced until trusted IP base discovery is available.
+- GPT disks
+- FAT32 EFI System Partition only where firmware requires it
+- TitanBoot on the ESP
+- NTFS as the early-development default for non-boot internal volumes
+- exFAT for removable/shared media
+- TitanFS as the long-term native filesystem
+- safe automatic discovery/mount policy
+- native archive/package direction based around 7-Zip support
 
+### Compatibility and compute
 
-## K14.C12
-Trusted Radeon IP-base sources and first bounded live status-read path. QEMU qualification pending. Write-side Radeon paths remain fenced.
+Long-term Titanweave work includes Windows application/API translation, modern graphics translation, native accelerator integration, mixed-vendor compute, shader precaching, and workload-aware memory/caching policies. These are roadmap goals and are not claimed as completed merely because their interfaces are anticipated by the architecture.
 
-### K14.C13
-Current development milestone: physical Radeon read-proof qualification. The write side remains fenced; C13 must pass Fedora/QEMU qualification before freeze.
+---
 
-### Current kernel milestone
-K14.C14 adds the controlled Radeon write-promotion readiness gate on top of the frozen C13 physical-read-proof framework. Destructive GPU capabilities remain fenced.
+## Development rule
 
+**No fake success. No required-path stubs.**
 
-### Current kernel milestone: K14.C15
-C15 introduces the first real write-side transaction without touching Radeon MMIO: a width-correct PCI Command identity write/readback with rollback and bus-master-off verification. GPU register writes and initialization remain fenced pending a separately reviewed target.
+A milestone is not frozen because source exists. It must pass its source gates and the appropriate runtime qualification. QEMU/emulated hardware evidence is labeled as such, and physical-silicon claims require physical evidence.
+
+For the exact active state, see [`CURRENT_STATUS.md`](CURRENT_STATUS.md).

@@ -757,6 +757,11 @@ pub extern "C" fn weave_user_exit_resume(result: u64) -> ! {
         runtime.exited, runtime.faulted, runtime.context_switches
     ));
     if result != 0 {
+        serial::println(format_args!(
+            "[K6DIAG] user runtime failure detail: exited={} count={} faulted={} shell_completed={} displayd_recovery_result={} displayd_recovery_acknowledged={}",
+            runtime.exited, runtime.count, runtime.faulted, runtime.shell_completed,
+            runtime.displayd_recovery_result, runtime.displayd_recovery_acknowledged
+        ));
         serial::println(format_args!("[FAIL] K6 user runtime reported failure"));
         halt_forever();
     }

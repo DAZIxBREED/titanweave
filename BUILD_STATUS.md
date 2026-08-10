@@ -35,3 +35,8 @@ K15.2: source-integrated from frozen K15.1. Adds shared ForgeAudio ABI v1, real 
 K15.2: qualified/frozen. Fedora/QEMU passed ForgeAudio ABI v1 with honest zero-device hardware enumeration, strict stream lifecycle/recovery, real bounded buffer memory/readback, monotonic clock/event/fence objects, inherited K15.1 and K14.C32 qualification, and intentional HALT.
 
 K15.3: source-integrated from frozen K15.2. Adds real contiguous DMA-ring allocation, kernel DMA mapping/teardown, bounded cyclic periods, playback/capture ownership, position/wrap accounting, translated-IOMMU hardware-arm gating, IOVA device addresses and XRUN detection. The self-test exercises real mapped memory and the transport state machine while explicitly deferring HDA hardware/IRQ evidence to K15.4. Runtime qualification remains pending on Fedora before K15.4 may begin.
+
+K15.3: qualified/frozen. Fedora/QEMU passed the ForgeAudio audio DMA transport with real physically backed cyclic ring memory, 12 completed periods / 3 wraps / 1536 frames, strict playback/capture ownership, cumulative position accounting, translated-IOMMU fail-closed hardware-arm gating, translated IOVA proof, bounded underrun/overrun detection, `fake_dma=false`, and honest QEMU HDA deferral. K15.4 is unlocked.
+
+
+K15.4: qualified/frozen from frozen K15.3. Fedora/QEMU passed real PCI HDA ownership/reset, CORB/RIRB codec transport, widget discovery, BDL/stream programming, translated VT-d DMA, MSI-driven playback/capture completion, capture-memory mutation, ForgeAudio device/endpoint registration, peer-DMA preservation and HDA/GPU coexistence. `fake_hw=false`; `physical_silicon=false`. K15.5 PCM Format Engine is unlocked.

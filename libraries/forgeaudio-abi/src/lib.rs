@@ -29,6 +29,9 @@ pub const AUDIO_DEVICE_FLAG_FULL_DUPLEX: u32 = 1 << 2;
 pub const AUDIO_DEVICE_FLAG_HOTPLUGGABLE: u32 = 1 << 3;
 pub const AUDIO_DEVICE_FLAG_CLOCK_MASTER: u32 = 1 << 4;
 
+/// Native PCI High Definition Audio controller backend.
+pub const AUDIO_BACKEND_HDA: u8 = 1;
+
 pub const AUDIO_ENDPOINT_FLAG_DEFAULT: u32 = 1 << 0;
 pub const AUDIO_ENDPOINT_FLAG_DIGITAL: u32 = 1 << 1;
 pub const AUDIO_ENDPOINT_FLAG_HEADPHONES: u32 = 1 << 2;

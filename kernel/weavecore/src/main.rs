@@ -7,6 +7,7 @@ mod graphics_abi;
 mod forgegraphics;
 mod forgeaudio;
 mod forgeaudio_dma;
+mod forgeaudio_hda;
 mod gpu_topology;
 mod gpu_memory;
 mod gpu_queue;
@@ -530,6 +531,65 @@ pub extern "C" fn weavecore_entry(boot_info_address: u64) -> ! {
         forgeaudio_dma_report.translated_platform_qualified,
         forgeaudio_dma_report.hardware_audio_deferred,
     ));
+
+    let forgeaudio_hda_report = match forgeaudio_hda::initialize_and_qualify(
+        &mut allocator,
+        boot_info.bootstrap.page_table_root,
+    ) {
+        Ok(report) => report,
+        Err(error) => {
+            serial::println(format_args!("[FAIL] K15.4 ForgeAudio real HDA hardware backend qualification failed: {error}"));
+            halt_forever();
+        }
+    };
+    serial::println(format_args!(
+        "[K15HR] ForgeAudio HDA ready: version={} pci={:04x}:{:04x} codecs={} widgets={} CORB={} RIRB={} BDL={} translated_dma={} MSI={} hw_irqs={} stream_irqs={} playback_periods={} capture_periods={} endpoints={} physical_silicon={}",
+        forgeaudio_hda_report.backend_version,
+        forgeaudio_hda_report.pci_vendor,
+        forgeaudio_hda_report.pci_device,
+        forgeaudio_hda_report.codec_count,
+        forgeaudio_hda_report.widget_count,
+        forgeaudio_hda_report.corb_ready,
+        forgeaudio_hda_report.rirb_ready,
+        forgeaudio_hda_report.bdl_ready,
+        forgeaudio_hda_report.translated_dma,
+        forgeaudio_hda_report.msi_enabled,
+        forgeaudio_hda_report.hardware_interrupts,
+        forgeaudio_hda_report.stream_interrupts,
+        forgeaudio_hda_report.playback_periods,
+        forgeaudio_hda_report.capture_periods,
+        forgeaudio_hda_report.forgeaudio_endpoints,
+        forgeaudio_hda_report.physical_silicon,
+    ));
+
+
+    // K15.4 must coexist with the already-frozen K13/K14 GPU transport.
+    // Probe the existing recovery fence without performing a new presentation
+    // or incrementing recovery counters: suspend then immediately rearm.
+    let gpu_before_hda_userspace = gpu_runtime::state();
+    if gpu_before_hda_userspace.transport_ready && gpu_before_hda_userspace.presentation_ready {
+        let suspended = match virtio_gpu::suspend_presentation_for_recovery() {
+            Ok(v) => v,
+            Err(error) => {
+                serial::println(format_args!("[FAIL] K15.4 HDA/GPU coexistence suspend check failed: {error}"));
+                halt_forever();
+            }
+        };
+        let resumed = match virtio_gpu::resume_presentation_after_recovery() {
+            Ok(v) => v,
+            Err(error) => {
+                serial::println(format_args!("[FAIL] K15.4 HDA/GPU coexistence rearm check failed: {error}"));
+                halt_forever();
+            }
+        };
+        if !suspended.bus_master_enabled || !suspended.driver_ok || !resumed.bus_master_enabled || !resumed.driver_ok {
+            serial::println(format_args!("[FAIL] K15.4 HDA/GPU coexistence found unhealthy frozen VirtIO-GPU transport"));
+            halt_forever();
+        }
+        serial::println(format_args!(
+            "[K15CO] HDA/GPU coexistence: virtio_transport=true driver_ok=true bus_master=true presentation_rearmed=true"
+        ));
+    }
 
     match native_gpu::initialize_foundation() {
         Ok(state) => serial::println(format_args!(

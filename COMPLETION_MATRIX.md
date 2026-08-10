@@ -60,4 +60,8 @@ Source-integrated; runtime qualification pending. Locked gate 1 of 16. Real RT s
 Qualified/frozen. Fedora/QEMU passed ABI v1 object lifecycle, zero fabricated devices, bounded buffers, monotonic clocks/events/fences, strict stream transitions/recovery, inherited K15.1/K14.C32 and intentional HALT.
 
 ## K15.3 — ForgeAudio Audio DMA Transport
-Source-integrated; runtime qualification pending. Locked gate 3 of 16. Real contiguous DMA memory, bounded cyclic periods, explicit playback/capture ownership, cumulative position/wrap accounting, fail-closed translated-IOMMU hardware arming, IOVA device addressing and underrun/overrun detection are implemented. No HDA hardware or fake DMA/IRQ completion is claimed in QEMU; K15.4 remains blocked until this gate passes.
+Qualified/frozen. Fedora/QEMU passed real contiguous DMA memory, bounded cyclic period ownership/completion, 12 periods / 3 wraps / 1536 frames, translated-IOMMU fail-closed hardware arming, IOVA addressing, and bounded underrun/overrun detection with `fake_dma=false`. K15.4 is unlocked.
+
+
+## K15.4 — ForgeAudio Real HDA Hardware Backend
+Qualified/frozen. Fedora/QEMU passed real PCI HDA discovery/ownership, controller reset, CORB/RIRB codec transport, widget discovery, BDL/stream descriptors, exact-requester translated DMA, MSI-driven playback/capture completion, capture-memory mutation, ForgeAudio HDA device/endpoint registration and peer-DMA/GPU coexistence. `fake_hw=false`; `physical_silicon=false`. K15.5 PCM Format Engine is unlocked.

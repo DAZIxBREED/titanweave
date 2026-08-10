@@ -1,68 +1,58 @@
 # Titanweave OS — Current Status
 
-**Updated: 2026-08-09**
+**Updated: 2026-08-10**
 
 ## Current project state
 
 - **K14 Native Radeon Foundation: COMPLETE / QUALIFIED / FROZEN ✅**
-- **Current development milestone: K15 ForgeAudio 🔊**
-- Frozen K14 behavior remains the graphics/native-Radeon baseline for future work.
+- **K15.1 ForgeAudio RT Foundation: QUALIFIED / FROZEN ✅**
+- **K15.2 ForgeAudio Kernel ABI: QUALIFIED / FROZEN ✅**
+- **K15.3 ForgeAudio Audio DMA Transport: QUALIFIED / FROZEN ✅**
+- **K15.4 Real HDA Hardware Backend: QUALIFIED / FROZEN ✅**
+- **K15.5 PCM Format Engine: NEXT / UNLOCKED 🔊**
 
-## Final K14 qualification
+## Active K15.4 qualification
 
-K14.C32 passed Fedora/QEMU production/stability qualification with all required final gates:
+K15.4 consumes the frozen K15.3 cyclic DMA transport and adds the real HDA hardware-model execution path:
 
-```text
-PASS  [C31OK] K14.C31 graphics+compute execution
-PASS  [C32QS] queue stability
-PASS  [C32MP] memory pressure
-PASS  [C32RC] recovery+interrupt stress
-PASS  [C32CX] concurrency
-PASS  [C32MD] display stability
-PASS  [C32PM] power policy
-PASS  [C32TL] telemetry/diagnostics
-PASS  [C32AB] frozen GPU ABI/capabilities
-PASS  [C32PG] final authority
-PASS  [C32RD] K14.C32 production/stability final ready
-PASS  [C32OK] K14.C32 production/stability + final K14
-PASS  [USER] displayd K14.C32 production/stability foundation online
-PASS  [RECV] stable userspace handoff
-PASS  [KERN] K14.C32 alive
-PASS  [QUAL] K14.C32 production-stability-final runtime reached intentional post-userspace halt
-PASS  [K14DONE] Titanweave native Radeon driver foundation operational
-PASS  [K15NEXT] K15 ForgeAudio is the next locked Titanweave milestone
-PASS  [HALT] BSP halted intentionally
-```
+- PCI HDA class/subclass discovery and ForgeBus ownership;
+- BAR0 MMIO mapping and controller reset;
+- CORB/RIRB DMA command transport;
+- codec, audio-function-group, converter and widget discovery;
+- HDA BDL and stream descriptor programming;
+- exact-requester translated Intel VT-d data-DMA window;
+- PCI MSI routed through Titanweave's interrupt router;
+- HDA stream interrupt evidence before K15.3 period retirement;
+- playback and capture DMA proof;
+- capture-memory mutation proof;
+- real ForgeAudio HDA device plus playback/capture endpoint registration;
+- explicit `fake_hw=false` and `physical_silicon=false` QEMU semantics.
 
-QEMU terminated after the intentional Titanweave halt with raw exit status `0`.
+K15.4 deliberately qualifies only 48 kHz / signed 16-bit / stereo. General format/rate/channel negotiation belongs to K15.5.
 
-## Frozen K14 closure
+## ForgeAudio stone contract
 
 ```text
-K14.C26  Safe hardware/MMIO foundation       FROZEN ✅
-K14.C27  Complete Radeon driver core         FROZEN ✅
-K14.C28  Memory + firmware + recovery        FROZEN ✅
-K14.C29  Rings + queues + fences + DMA       FROZEN ✅
-K14.C30  Complete basic display engine       FROZEN ✅
-K14.C31  Graphics + compute execution        FROZEN ✅
-K14.C32  Production/stability + final K14    FROZEN ✅
-
-K14      Native Radeon foundation            COMPLETE ✅
-K15      ForgeAudio                          NEXT 🔊
+K15.1   Real-Time Audio Execution Foundation       FROZEN ✅
+K15.2   ForgeAudio Kernel ABI                      FROZEN ✅
+K15.3   Audio DMA Transport                        FROZEN ✅
+K15.4   Real HDA Hardware Backend                  FROZEN ✅
+K15.5   PCM Format Engine                          NEXT 🔊
+K15.6   ForgeAudioD                                LOCKED
+K15.7   Lock-Free Audio Transport                  LOCKED
+K15.8   ForgeAudio Graph Engine                    LOCKED
+K15.9   Sample-Accurate Graph Switching            LOCKED
+K15.10  Clock & Synchronization Engine             LOCKED
+K15.11  Production Resampler                       LOCKED
+K15.12  Full-Duplex Capture + Playback             LOCKED
+K15.13  Routing, Per-App Mixing & Monitor Paths    LOCKED
+K15.14  Latency & XRUN Engine                      LOCKED
+K15.15  Fault Recovery & Hotplug                   LOCKED
+K15.16  Full Production Qualification + Freeze     LOCKED
 ```
 
 ## Qualification boundary
 
-QEMU qualifies Titanweave's reference/software execution paths and final production gates. It does not masquerade as physical Radeon silicon stress. Physical Radeon evidence remains separately recorded where required.
+QEMU HDA is real execution against QEMU's emulated HDA controller/codec model and real Titanweave PCI/MMIO/DMA/MSI code paths. It is not physical motherboard/audio-codec silicon. `physical_silicon=false` is therefore required for the QEMU K15.4 gate.
 
-## Canonical project docs
-
-- `README.md` — project description, architecture, ambition, and current status.
-- `PROJECT_VISION.md` — long-term Titanweave goals and design philosophy.
-- `K14_STATUS.md` — final K14 Radeon qualification/freeze record.
-- `BUILD_STATUS.md` — current build and runtime qualification state.
-- `COMPLETION_MATRIX.md` — milestone completion matrix.
-
-## Next
-
-**K15 ForgeAudio** begins the native Titanweave low-latency audio foundation.
+See `README.md`, `PROJECT_VISION.md`, `K15_STATUS.md`, and `K15_STONE_CONTRACT.md`.

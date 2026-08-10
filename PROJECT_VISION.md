@@ -1,196 +1,51 @@
 # Titanweave OS — Project Vision
 
-Titanweave is a ground-up 64-bit operating system project built to explore what a modern desktop, gaming, VR, creator, and workstation OS can look like when performance-critical decisions are made in the architecture from the beginning instead of layered on afterward.
+Titanweave is an independent 64-bit operating system intended to combine high performance, hardware transparency, creator-grade low latency, gaming practicality, VR readiness, and an approachable driver model without inheriting a Linux, Unix, or Windows kernel/userspace architecture.
 
-It is not intended to become another Linux distribution, a Unix clone, or a Windows skin. Titanweave is meant to develop its own kernel, hardware model, graphics/audio/storage foundations, userspace contracts, and compatibility architecture while remaining practical enough to run real software and real hardware.
+## Core principles
 
-## Core identity
+### 1. Build for latency and throughput from the beginning
 
-Titanweave combines several influences without trying to copy any one operating system:
+Scheduling, interrupts, DMA, memory ownership, storage caching, graphics submission, and audio timing should be explicit architectural concerns. Titanweave should avoid unnecessary work in critical paths and make performance behavior observable rather than mysterious.
 
-- the modularity and directness associated with OS/2-style system design,
-- the practical application/device expectations users associate with Windows,
-- modern capability-based safety and explicit hardware ownership,
-- gaming-console-like attention to latency and resource control,
-- workstation-class accelerator, storage, audio, and multi-device ambitions.
+### 2. Treat gaming as a platform workload
 
-The goal is a system that feels coherent rather than accumulated.
+Gaming support is more than drawing frames. Titanweave's long-term direction includes shader precaching before launch, fast asset access, predictable CPU/GPU scheduling, low-overhead input/audio/display paths, multi-GPU scheduling, and practical clean-room Windows compatibility/translation.
 
-## Performance-first architecture
+### 3. Treat multiple accelerators as resources
 
-Performance is not only a benchmark target. Titanweave is intended to make performance behavior understandable and controllable.
+The system should be able to inventory, characterize, and eventually schedule work across multiple GPUs and accelerators. Mixed-vendor systems should not be architecturally excluded. AMD HIP/ROCm-class, NVIDIA CUDA/OptiX-class, and Intel/Embree-class workloads are long-term targets, with Titanweave-native capability interfaces separating applications from unnecessary vendor assumptions where possible.
 
-Long-term design goals include:
+### 4. ForgeAudio is a first-class kernel-to-userspace audio architecture
 
-- explicit CPU/GPU/device scheduling instead of opaque background contention,
-- predictable low-latency paths for audio, VR, input, graphics, and streaming,
-- shader precaching/preloading before games and heavy graphical applications begin,
-- assignable system-RAM caches for storage and other high-I/O workloads,
-- rapid startup and reduced unnecessary resident services,
-- telemetry that can explain why a workload slowed down instead of simply reporting that it did.
+Professional audio, DJ use, streaming, VR, games, and creator workflows require deterministic scheduling and bounded latency. K15 ForgeAudio therefore starts below a traditional desktop mixer: real-time execution, a stable kernel ABI, owned cyclic DMA, real hardware backends, clocking, lock-free transport, graph execution, sample-accurate switching, resampling, routing, monitoring, XRUN handling, recovery, and hotplug are built as an integrated architecture.
 
-## Gaming
+### 5. VR should not be a bolted-on compatibility layer
 
-Gaming is a first-class Titanweave workload.
+Display timing, graphics scheduling, input, audio timing, device discovery, and low-latency communication should be suitable for VR as native workloads. The architecture should make room for headset, controller, tracking, and facial/eye-tracking devices without special-case hacks becoming the foundation.
 
-The long-term design direction includes:
+### 6. Drivers should be easier to reason about
 
-- a native graphics foundation with vendor-specific backends behind stable Titanweave interfaces,
-- shader cache and shader-precache infrastructure,
-- fast asset and storage paths,
-- multi-GPU aware scheduling,
-- VR-first timing/display/input/audio integration,
-- Windows-game compatibility through translation and clean-room compatibility work rather than dependence on Windows itself.
+ForgeBus is intended to give drivers explicit device ownership, capabilities, interrupt routes, DMA domains, and lifecycle boundaries. Hardware access should be narrowly authorized and fail closed. A custom-driver developer should be able to understand what authority a driver has and why.
 
-K14 completed Titanweave's native Radeon driver foundation and established memory ownership, queues, fences, display ownership, reference graphics/compute execution, recovery, telemetry, shader-precache hooks, and a frozen userspace GPU capability ABI.
+### 7. Use abundant system memory intentionally
 
-## Multi-GPU
+Modern high-end systems frequently have far more RAM than the operating system actively exploits. Titanweave's long-term performance architecture includes assignable DDR4/DDR5 storage cache, precaching, asset staging, and memory tiers that can reduce I/O pressure or supplement accelerator workflows where technically appropriate.
 
-Titanweave is being designed so multiple GPUs can eventually be treated as independent compute/graphics resources under one scheduler.
+### 8. Storage compatibility belongs at the boundary
 
-The ambition includes:
+Firmware requirements should not dictate the entire storage architecture. Titanweave uses GPT and a standards-compliant FAT32 EFI System Partition for firmware boot compatibility. During early development, non-boot internal volumes default to NTFS; exFAT is primarily for removable/shared media. TitanFS is the planned native filesystem.
 
-- same-vendor and mixed-vendor enumeration,
-- workload placement based on capability and load,
-- graphics/compute specialization,
-- background compute on secondary GPUs,
-- future frame/work decomposition where technically appropriate,
-- explicit synchronization and resource-transfer policy instead of hidden implicit behavior.
+### 9. Compatibility without becoming another operating system
 
-K14.C32 established multi-GPU inventory groundwork. Production multi-GPU execution remains future work.
+Titanweave's goal is practical software compatibility through translation and clean-room interfaces, not copying Windows or embedding Linux as the operating-system identity. Compatibility layers should sit above Titanweave's own kernel, security, scheduler, graphics, audio, storage, and driver architecture.
 
-## Accelerated compute
+### 10. Qualification must match the evidence
 
-Titanweave's long-term compute direction aims to make accelerator workloads native citizens of the OS.
+QEMU is valuable because it gives repeatable hardware models and regression paths, but emulation is not physical silicon. Titanweave milestones must state exactly what was proven. Source-integrated, QEMU-qualified, physical-hardware-qualified, and production-frozen are different states.
 
-Target classes include:
+## Current execution roadmap
 
-- AMD HIP/ROCm-style workloads,
-- NVIDIA CUDA/OptiX-class workloads,
-- Intel/Embree-class acceleration,
-- vendor-neutral Titanweave capability and scheduling interfaces where practical.
+K14 delivered and froze the Native Radeon Foundation. K15 is ForgeAudio and is governed by exactly sixteen ordered gates in `K15_STONE_CONTRACT.md`. K15.1 through K15.3 are frozen. K15.4 Real HDA Hardware Backend is the active source-integrated gate and must runtime-qualify before K15.5 PCM Format Engine begins.
 
-These are architectural goals. They are not all implemented today.
-
-## ForgeAudio
-
-**K15 ForgeAudio is the next locked milestone.**
-
-ForgeAudio is intended to become Titanweave's native low-latency audio system rather than a compatibility layer bolted onto another OS audio stack.
-
-The architecture is intended to support:
-
-- low-latency game and VR audio,
-- professional audio interfaces,
-- DJ controllers/decks,
-- high sample rates and multichannel routing,
-- capture and monitoring,
-- application-to-application routing,
-- streaming and broadcast workflows,
-- deterministic timing suitable for music production and live performance.
-
-The exact K15 implementation will be qualified milestone by milestone rather than treating this vision list as already complete.
-
-## VR
-
-VR is intended to be a first-class Titanweave environment.
-
-That means VR requirements should influence:
-
-- graphics scheduling,
-- display timing,
-- USB/device handling,
-- low-latency audio,
-- input tracking,
-- compositor behavior,
-- process scheduling,
-- power/performance policy.
-
-The goal is to avoid the common pattern where VR must fight a desktop architecture that was never designed around it.
-
-## Drivers and ForgeBus
-
-Titanweave aims to make custom drivers easier to understand and build than traditional monolithic driver models.
-
-ForgeBus is the foundation for explicit device ownership and capability-scoped hardware access. Driver development should favor:
-
-- clear ownership,
-- explicit MMIO/DMA authority,
-- stable capability interfaces,
-- testable fail-closed behavior,
-- reusable transport and device abstractions,
-- useful diagnostics when a device cannot safely be activated.
-
-## Storage and memory
-
-Titanweave separates firmware boot compatibility from the native storage direction.
-
-### Boot/storage plan
-
-- GPT partitioning.
-- FAT32 only where required for the EFI System Partition.
-- TitanBoot on the ESP.
-- NTFS as the default non-bootable internal-volume format during early development.
-- exFAT primarily for removable/shared media.
-- TitanFS as the planned native production filesystem.
-
-### Memory as a performance resource
-
-Systems with large amounts of DDR4/DDR5 should be able to deliberately use that capacity. Long-term goals include configurable RAM-backed storage caching, aggressive safe read caching, precaching, and future accelerator-support strategies where system memory can reduce pressure on slower tiers.
-
-## Compatibility
-
-Titanweave intends to be its own operating system while still being useful in a world dominated by existing applications.
-
-The compatibility ambition includes:
-
-- Windows application/game translation,
-- familiar filesystem and device interoperability where useful,
-- firmware-update workflows that reduce the need to dual boot another OS,
-- standard media/network formats,
-- clean interfaces for porting native applications to Titanweave.
-
-Compatibility should not dictate Titanweave's internal design.
-
-## Creator and media workloads
-
-Titanweave is intended for more than conventional desktop applications. It should be suitable for:
-
-- DJs and live performers,
-- video/audio production,
-- 3D and game development,
-- streaming,
-- VR content creation,
-- GPU compute,
-- AI/local-model workloads,
-- high-throughput storage workflows.
-
-This is one reason graphics, audio, storage, hardware scheduling, and diagnostics are being treated as core OS architecture rather than optional applications.
-
-## Safety and qualification philosophy
-
-Titanweave does not equate a roadmap target with an implemented feature.
-
-Project rules include:
-
-- no fake-success subsystem,
-- no placeholder presented as completed functionality,
-- no `todo!()` or `unimplemented!()` in qualified milestone paths,
-- hardware authority stays fail-closed until prerequisites are satisfied,
-- QEMU qualification never masquerades as physical-silicon proof,
-- frozen milestones remain stable,
-- source checks and runtime qualification are recorded separately.
-
-This distinction is critical because Titanweave's ambition is intentionally large. The project should be able to aim high without lying about what exists today.
-
-## Current position
-
-As of 2026-08-09:
-
-- K11 ForgeBus foundation: qualified/frozen.
-- K12 graphics/display foundation: qualified/frozen.
-- K13 generic graphics/runtime acceleration foundation: qualified/frozen.
-- K14 native Radeon foundation: **COMPLETE / FROZEN**.
-- K15 ForgeAudio: **NEXT**.
-
-The long-term vision remains larger than K15, but implementation proceeds through qualified, frozen milestones so the system gains capability without sacrificing the stability already earned.
+Titanweave's ambition is broad, but the engineering rule is narrow: **one real gate at a time, no required-path stubs, and no success claims beyond the evidence.**

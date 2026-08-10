@@ -329,6 +329,30 @@ impl AudioDmaTransport {
     pub fn period_count(&self) -> usize { self.period_count }
 
     #[must_use]
+    pub fn direction(&self) -> AudioDirection { self.direction }
+
+    #[must_use]
+    pub fn ring_physical_base(&self) -> u64 { self.ring.physical_address }
+
+    #[must_use]
+    pub fn ring_virtual_base(&self) -> u64 { self.ring.virtual_address }
+
+    #[must_use]
+    pub fn ring_mapped_bytes(&self) -> u64 { self.ring.mapped_bytes }
+
+    #[must_use]
+    pub fn ring_requested_bytes(&self) -> u64 { self.ring.requested_bytes }
+
+    #[must_use]
+    pub fn period_bytes(&self) -> u32 { self.period_bytes }
+
+    #[must_use]
+    pub fn period_frames(&self) -> u32 { self.period_frames }
+
+    #[must_use]
+    pub fn frame_stride_bytes(&self) -> u32 { self.frame_stride_bytes }
+
+    #[must_use]
     pub fn period_descriptor(&self, index: usize) -> Option<PeriodDescriptor> {
         if index >= self.period_count { None } else { Some(self.periods[index]) }
     }
@@ -402,6 +426,37 @@ impl AudioDmaTransport {
             return Err("audio DMA backend cannot complete an unarmed transport");
         }
         self.complete_period_core(index, frames)
+    }
+
+    /// Abort one backend-owned period during hardware teardown without
+    /// recording a successful DMA completion. This is reserved for backend
+    /// recovery/unwind paths; normal playback/capture must complete through
+    /// `backend_complete_period`.
+    pub fn backend_abort_inflight(&mut self) -> Result<(), &'static str> {
+        if !self.hardware_armed {
+            return Err("audio DMA backend cannot abort an unarmed transport");
+        }
+        let Some(index) = self.inflight_period else { return Ok(()); };
+        if index >= self.period_count {
+            return Err("audio DMA in-flight period index is outside ring");
+        }
+        let period = &mut self.periods[index];
+        if period.ownership != PeriodOwnership::DeviceOwned {
+            return Err("audio DMA abort found a period not owned by device");
+        }
+        match self.direction {
+            AudioDirection::Playback => {
+                period.committed_frames = 0;
+                period.ownership = PeriodOwnership::CpuWritable;
+            }
+            AudioDirection::Capture => {
+                period.committed_frames = 0;
+                period.ownership = PeriodOwnership::DeviceReady;
+            }
+            AudioDirection::Duplex => return Err("invalid duplex DMA transport"),
+        }
+        self.inflight_period = None;
+        Ok(())
     }
 
     fn acquire_next_core(&mut self) -> Result<BackendPeriod, &'static str> {
