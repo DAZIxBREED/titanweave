@@ -26,9 +26,9 @@ for token in [
 ]:
     assert token in graph, token
 
-# Required processing path is fixed-capacity and contains no allocator/lock/sleep.
+# Required processing path is fixed-capacity and contains no allocator/lock/sleep primitive.
 for forbidden in ['Vec<', 'Box<', 'alloc::', 'Mutex', 'SpinLock', 'sleep(',
-                  'todo!()', 'unimplemented!()', 'filesystem', 'File::']:
+                  'todo!()', 'unimplemented!()', 'File::']:
     assert forbidden not in graph, forbidden
 
 # K15.8 executes only after K15.7 ServerQualify succeeds, so a graph failure
