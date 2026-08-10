@@ -43,6 +43,9 @@ pub const SYS_NATIVE_GPU_C29_QUERY: u64 = 40;
 pub const SYS_NATIVE_GPU_C30_QUERY: u64 = 41;
 pub const SYS_NATIVE_GPU_C31_QUERY: u64 = 42;
 pub const SYS_NATIVE_GPU_C32_QUERY: u64 = 43;
+pub const SYS_AUDIO_ABI_QUERY: u64 = 44;
+pub const SYS_AUDIO_ENUMERATE: u64 = 45;
+pub const SYS_AUDIO_CONTROL: u64 = 46;
 
 pub const ERROR_INVALID_ARGUMENT: i64 = -1;
 pub const ERROR_BAD_HANDLE: i64 = -2;
@@ -50,6 +53,12 @@ pub const ERROR_ACCESS_DENIED: i64 = -3;
 pub const ERROR_WOULD_BLOCK: i64 = -4;
 pub const ERROR_NO_SPACE: i64 = -5;
 pub const ERROR_PROCESS_FAULT: i64 = -6;
+pub const ERROR_NOT_FOUND: i64 = -7;
+pub const ERROR_NOT_READY: i64 = -8;
+pub const ERROR_BUSY: i64 = -9;
+pub const ERROR_BUFFER_TOO_SMALL: i64 = -10;
+pub const ERROR_INVALID_STATE: i64 = -11;
+pub const ERROR_NOT_SUPPORTED: i64 = -12;
 
 #[inline]
 pub const fn encode_error(error: i64) -> u64 {

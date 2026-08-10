@@ -3,6 +3,7 @@ members = [
     "boot/uefi-loader",
     "kernel/weavecore",
     "libraries/boot-protocol",
+    "libraries/forgeaudio-abi",
     "libraries/user-runtime",
 ]
 resolver = "3"

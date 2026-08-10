@@ -2,6 +2,8 @@
 
 use core::arch::asm;
 
+pub use titanweave_forgeaudio_abi::*;
+
 pub type Handle = u32;
 
 pub const SYS_EXIT: u64 = 0;
@@ -11,6 +13,9 @@ pub const SYS_CHANNEL_RECEIVE: u64 = 3;
 pub const SYS_GETPID: u64 = 4;
 pub const SYS_YIELD: u64 = 5;
 pub const SYS_SYSTEM_QUERY: u64 = 6;
+pub const SYS_AUDIO_ABI_QUERY: u64 = 44;
+pub const SYS_AUDIO_ENUMERATE: u64 = 45;
+pub const SYS_AUDIO_CONTROL: u64 = 46;
 
 pub const RIGHT_READ: u32 = 1 << 0;
 pub const RIGHT_WRITE: u32 = 1 << 1;
@@ -115,6 +120,70 @@ pub fn yield_now() {
 
 pub fn system_query(query: u64) -> i64 {
     unsafe { syscall3(SYS_SYSTEM_QUERY, query, 0, 0) as i64 }
+}
+
+
+pub fn audio_abi_query(info: &mut AudioAbiInfo) -> i64 {
+    unsafe {
+        syscall5(
+            SYS_AUDIO_ABI_QUERY,
+            info as *mut AudioAbiInfo as u64,
+            core::mem::size_of::<AudioAbiInfo>() as u64,
+            0,
+            0,
+            0,
+        ) as i64
+    }
+}
+
+pub fn audio_enumerate_device(index: u64, info: &mut AudioDeviceInfo) -> i64 {
+    unsafe {
+        syscall5(
+            SYS_AUDIO_ENUMERATE,
+            AudioObjectKind::Device as u64,
+            0,
+            index,
+            info as *mut AudioDeviceInfo as u64,
+            core::mem::size_of::<AudioDeviceInfo>() as u64,
+        ) as i64
+    }
+}
+
+pub fn audio_enumerate_endpoint(
+    device_object_id: u64,
+    index: u64,
+    info: &mut AudioEndpointInfo,
+) -> i64 {
+    unsafe {
+        syscall5(
+            SYS_AUDIO_ENUMERATE,
+            AudioObjectKind::Endpoint as u64,
+            device_object_id,
+            index,
+            info as *mut AudioEndpointInfo as u64,
+            core::mem::size_of::<AudioEndpointInfo>() as u64,
+        ) as i64
+    }
+}
+
+pub fn audio_control(
+    request: &AudioControlRequest,
+    response: &mut AudioControlResponse,
+) -> i64 {
+    unsafe {
+        syscall5(
+            SYS_AUDIO_CONTROL,
+            request as *const AudioControlRequest as u64,
+            core::mem::size_of::<AudioControlRequest>() as u64,
+            response as *mut AudioControlResponse as u64,
+            core::mem::size_of::<AudioControlResponse>() as u64,
+            0,
+        ) as i64
+    }
+}
+
+pub const fn audio_pack_period_buffer(period_frames: u32, buffer_frames: u32) -> u64 {
+    (period_frames as u64) | ((buffer_frames as u64) << 32)
 }
 
 pub fn exit(code: u64) -> ! {

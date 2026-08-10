@@ -1,5 +1,5 @@
 [package]
-name = "titanweave-user-runtime"
+name = "titanweave-forgeaudio-abi"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
@@ -8,4 +8,3 @@ publish.workspace = true
 crate-type = ["rlib"]
 
 [dependencies]
-titanweave-forgeaudio-abi = { path = "../forgeaudio-abi" }

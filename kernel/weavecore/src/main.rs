@@ -5,6 +5,7 @@ mod sha256;
 mod framebuffer;
 mod graphics_abi;
 mod forgegraphics;
+mod forgeaudio;
 mod gpu_topology;
 mod gpu_memory;
 mod gpu_queue;
@@ -351,6 +352,24 @@ pub extern "C" fn weavecore_entry(boot_info_address: u64) -> ! {
         forgeaudio_rt_report.priority_inheritance_events,
         forgeaudio_rt_report.preemption_deferrals,
         forgeaudio_rt_report.audio_cpu_reserved,
+    ));
+
+    let forgeaudio_abi = match forgeaudio::initialize() {
+        Ok(info) => info,
+        Err(error) => {
+            serial::println(format_args!("[FAIL] K15.2 ForgeAudio kernel ABI initialization failed: {error}"));
+            halt_forever();
+        }
+    };
+    if let Err(error) = forgeaudio::run_abi_self_test() {
+        serial::println(format_args!("[FAIL] K15.2 ForgeAudio kernel ABI qualification failed: {error}"));
+        halt_forever();
+    }
+    serial::println(format_args!(
+        "[K15ARD] ForgeAudio ABI ready: version={} features={:#x} real_devices={} fake_devices=false",
+        forgeaudio_abi.current_version,
+        forgeaudio_abi.features,
+        forgeaudio::device_count(),
     ));
 
     match display::initialize(boot_info) {

@@ -91,6 +91,10 @@ name = "titanweave-boot-protocol"
 version = "0.14.0"
 
 [[package]]
+name = "titanweave-forgeaudio-abi"
+version = "0.14.0"
+
+[[package]]
 name = "titanweave-uefi-loader"
 version = "0.14.0"
 dependencies = [
@@ -101,6 +105,9 @@ dependencies = [
 [[package]]
 name = "titanweave-user-runtime"
 version = "0.14.0"
+dependencies = [
+ "titanweave-forgeaudio-abi",
+]
 
 [[package]]
 name = "ucs2"
@@ -165,4 +172,5 @@ name = "weavecore"
 version = "0.14.0"
 dependencies = [
  "titanweave-boot-protocol",
+ "titanweave-forgeaudio-abi",
 ]

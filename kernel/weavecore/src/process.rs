@@ -315,6 +315,16 @@ pub fn current_lookup(handle: Handle, rights: u32) -> Result<HandleObject, &'sta
     with_process(index, |process| process.handles.lookup(handle, rights))
 }
 
+pub fn current_allocate_handle(object: HandleObject, rights: u32) -> Result<Handle, &'static str> {
+    let index = unsafe { (*RUNTIME.0.get()).current_index };
+    with_process_mut(index, |process| process.handles.allocate(object, rights))
+}
+
+pub fn current_close_handle(handle: Handle) -> Result<HandleDescriptor, &'static str> {
+    let index = unsafe { (*RUNTIME.0.get()).current_index };
+    with_process_mut(index, |process| process.handles.close(handle))
+}
+
 pub fn current_transferable(
     handle: Handle,
     rights: u32,
@@ -675,12 +685,18 @@ fn reap_terminal_processes() {
     }
 }
 
-fn release_handle_object(_owner: ProcessId, descriptor: HandleDescriptor) {
-    let object_id = match descriptor.object {
-        HandleObject::File{object_id}|HandleObject::Process{object_id}|HandleObject::SharedMemory{object_id}|HandleObject::Device{object_id} => Some(object_id),
-        _ => None,
-    };
-    if let Some(id)=object_id { let _ = crate::kernel_runtime::with_runtime(|runtime| runtime.objects.release_object(id)); }
+fn release_handle_object(owner: ProcessId, descriptor: HandleDescriptor) {
+    match descriptor.object {
+        HandleObject::Audio { object_id, kind } => {
+            if let Err(error) = crate::forgeaudio::release_object(kind, object_id, owner) {
+                serial::println(format_args!("[K15ABI] audio handle release deferred/failed: object={:#x} kind={:?} error={}", object_id, kind, error));
+            }
+        }
+        HandleObject::File{object_id}|HandleObject::Process{object_id}|HandleObject::SharedMemory{object_id}|HandleObject::Device{object_id} => {
+            let _ = crate::kernel_runtime::with_runtime(|runtime| runtime.objects.release_object(object_id));
+        }
+        _ => {}
+    }
 }
 
 fn process_switch_values(index: usize) -> (u64, u64, u64) {

@@ -1,3 +1,4 @@
+use titanweave_forgeaudio_abi::AudioObjectKind;
 pub type Handle = u32;
 pub const CONSOLE_HANDLE: Handle = 1;
 pub const SERVICE_CHANNEL_HANDLE: Handle = 2;
@@ -19,6 +20,7 @@ pub enum HandleObject {
     Process { object_id: u64 },
     SharedMemory { object_id: u64 },
     Device { object_id: u64 },
+    Audio { object_id: u64, kind: AudioObjectKind },
 }
 #[derive(Clone, Copy, Debug)]
 pub struct HandleDescriptor { pub object: HandleObject, pub rights: u32 }

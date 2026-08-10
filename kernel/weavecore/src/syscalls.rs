@@ -1,8 +1,12 @@
 use crate::abi::*;
-use crate::handles::{Handle, HandleObject, RIGHT_READ, RIGHT_WRITE};
+use crate::handles::{Handle, HandleObject, RIGHT_CLOSE, RIGHT_READ, RIGHT_WRITE};
 use crate::ipc::MAX_MESSAGE_BYTES;
 use crate::user::UserTrapFrame;
-use crate::{display, gpu_runtime, native_gpu, native_gpu_binding, native_gpu_c2, native_gpu_c3, native_gpu_c4, native_gpu_c5, native_gpu_c6, native_gpu_c7, native_gpu_c8, native_gpu_c9, native_gpu_c10, native_gpu_c11, native_gpu_c12, native_gpu_c13, native_gpu_c14, native_gpu_c15, native_gpu_c16, native_gpu_c17, native_gpu_c18, native_gpu_c19, native_gpu_c20, native_gpu_c21, native_gpu_c22, native_gpu_c23, native_gpu_c24, native_gpu_c25, native_gpu_c26, native_gpu_c27, native_gpu_c28, native_gpu_c29, native_gpu_c30, native_gpu_c31, native_gpu_c32, namespace, percpu, process, serial, shared_memory, vfs};
+use titanweave_forgeaudio_abi::{
+    AudioAbiInfo, AudioControlOp, AudioControlRequest, AudioControlResponse, AudioDeviceInfo,
+    AudioEndpointInfo, AudioObjectKind, AudioStreamConfig, FORGEAUDIO_ABI_VERSION,
+};
+use crate::{display, forgeaudio, gpu_runtime, native_gpu, native_gpu_binding, native_gpu_c2, native_gpu_c3, native_gpu_c4, native_gpu_c5, native_gpu_c6, native_gpu_c7, native_gpu_c8, native_gpu_c9, native_gpu_c10, native_gpu_c11, native_gpu_c12, native_gpu_c13, native_gpu_c14, native_gpu_c15, native_gpu_c16, native_gpu_c17, native_gpu_c18, native_gpu_c19, native_gpu_c20, native_gpu_c21, native_gpu_c22, native_gpu_c23, native_gpu_c24, native_gpu_c25, native_gpu_c26, native_gpu_c27, native_gpu_c28, native_gpu_c29, native_gpu_c30, native_gpu_c31, native_gpu_c32, namespace, percpu, process, serial, shared_memory, vfs};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn weave_syscall_dispatch(frame: *mut UserTrapFrame) -> *mut UserTrapFrame {
@@ -284,6 +288,18 @@ pub extern "C" fn weave_syscall_dispatch(frame: *mut UserTrapFrame) -> *mut User
             unsafe { (*frame).rax = status };
             frame
         }
+        SYS_AUDIO_ABI_QUERY => {
+            unsafe { (*frame).rax = syscall_audio_abi_query(a1, a2) };
+            frame
+        }
+        SYS_AUDIO_ENUMERATE => {
+            unsafe { (*frame).rax = syscall_audio_enumerate(a1, a2, a3, a4, a5) };
+            frame
+        }
+        SYS_AUDIO_CONTROL => {
+            unsafe { (*frame).rax = syscall_audio_control(a1, a2, a3, a4, a5) };
+            frame
+        }
         SYS_GPU_RECOVER => {
             let authorized = matches!(
                 process::current_lookup(a1 as Handle, RIGHT_WRITE),
@@ -449,4 +465,455 @@ fn syscall_system_query(query: u64) -> u64 {
         }
         _ => encode_error(ERROR_INVALID_ARGUMENT),
     }
+}
+
+
+fn syscall_audio_abi_query(output_address: u64, output_length: u64) -> u64 {
+    if output_length != core::mem::size_of::<AudioAbiInfo>() as u64 {
+        return encode_error(ERROR_BUFFER_TOO_SMALL);
+    }
+    let info = forgeaudio::abi_info();
+    match copy_struct_to_user(output_address, &info) {
+        Ok(()) => core::mem::size_of::<AudioAbiInfo>() as u64,
+        Err(error) => encode_error(error),
+    }
+}
+
+fn syscall_audio_enumerate(
+    kind_raw: u64,
+    parent_object_id: u64,
+    index_raw: u64,
+    output_address: u64,
+    output_length: u64,
+) -> u64 {
+    let Ok(index) = usize::try_from(index_raw) else {
+        return encode_error(ERROR_INVALID_ARGUMENT);
+    };
+    match kind_raw as u32 {
+        value if value == AudioObjectKind::Device as u32 => {
+            if output_length != core::mem::size_of::<AudioDeviceInfo>() as u64 {
+                return encode_error(ERROR_BUFFER_TOO_SMALL);
+            }
+            let Some(info) = forgeaudio::enumerate_device(index) else {
+                return encode_error(ERROR_NOT_FOUND);
+            };
+            match copy_struct_to_user(output_address, &info) {
+                Ok(()) => core::mem::size_of::<AudioDeviceInfo>() as u64,
+                Err(error) => encode_error(error),
+            }
+        }
+        value if value == AudioObjectKind::Endpoint as u32 => {
+            if parent_object_id == 0 {
+                return encode_error(ERROR_INVALID_ARGUMENT);
+            }
+            if output_length != core::mem::size_of::<AudioEndpointInfo>() as u64 {
+                return encode_error(ERROR_BUFFER_TOO_SMALL);
+            }
+            let Some(info) = forgeaudio::enumerate_endpoint(parent_object_id, index) else {
+                return encode_error(ERROR_NOT_FOUND);
+            };
+            match copy_struct_to_user(output_address, &info) {
+                Ok(()) => core::mem::size_of::<AudioEndpointInfo>() as u64,
+                Err(error) => encode_error(error),
+            }
+        }
+        _ => encode_error(ERROR_INVALID_ARGUMENT),
+    }
+}
+
+fn syscall_audio_control(
+    request_address: u64,
+    request_length: u64,
+    response_address: u64,
+    response_length: u64,
+    reserved: u64,
+) -> u64 {
+    if reserved != 0
+        || request_length != core::mem::size_of::<AudioControlRequest>() as u64
+        || response_length != core::mem::size_of::<AudioControlResponse>() as u64
+    {
+        return encode_error(ERROR_INVALID_ARGUMENT);
+    }
+    let request = match copy_struct_from_user::<AudioControlRequest>(request_address) {
+        Ok(request) => request,
+        Err(error) => return encode_error(error),
+    };
+    if request.abi_version != FORGEAUDIO_ABI_VERSION {
+        return encode_error(ERROR_NOT_SUPPORTED);
+    }
+    let Some(operation) = AudioControlOp::from_raw(request.operation) else {
+        return encode_error(ERROR_INVALID_ARGUMENT);
+    };
+
+    let response = match execute_audio_control(operation, request) {
+        Ok(response) => response,
+        Err(error) => return encode_error(error),
+    };
+
+    if let Err(error) = copy_struct_to_user(response_address, &response) {
+        if creates_audio_handle(operation) && response.handle != 0 {
+            cleanup_new_audio_handle(response.handle);
+        }
+        return encode_error(error);
+    }
+    core::mem::size_of::<AudioControlResponse>() as u64
+}
+
+fn execute_audio_control(
+    operation: AudioControlOp,
+    request: AudioControlRequest,
+) -> Result<AudioControlResponse, i64> {
+    match operation {
+        AudioControlOp::OpenDevice => {
+            if request.object_id == 0 {
+                return Err(ERROR_INVALID_ARGUMENT);
+            }
+            let object = forgeaudio::open_device(request.object_id).map_err(map_audio_error)?;
+            let handle = install_audio_handle(object, RIGHT_READ | RIGHT_WRITE | RIGHT_CLOSE)?;
+            Ok(audio_response_for_object(handle, object, 0))
+        }
+        AudioControlOp::OpenStream => {
+            let device_object_id = match process::current_lookup(request.handle, RIGHT_WRITE) {
+                Ok(HandleObject::Audio { object_id, kind: AudioObjectKind::Device }) => object_id,
+                Ok(_) => return Err(ERROR_BAD_HANDLE),
+                Err(error) => return Err(process::map_handle_error(error)),
+            };
+            let object = forgeaudio::open_stream(
+                process::current_pid(),
+                device_object_id,
+                request.object_id,
+            )
+            .map_err(map_audio_error)?;
+            let handle = install_audio_handle(object, RIGHT_READ | RIGHT_WRITE | RIGHT_CLOSE)?;
+            Ok(audio_response_for_object(
+                handle,
+                object,
+                titanweave_forgeaudio_abi::AudioStreamState::Created as u32,
+            ))
+        }
+        AudioControlOp::ConfigureStream => {
+            let object_id = lookup_audio_handle(request.handle, RIGHT_WRITE, AudioObjectKind::Stream)?;
+            let direction = u32::try_from(request.object_id).map_err(|_| ERROR_INVALID_ARGUMENT)?;
+            let sample_format = u32::try_from(request.arg0).map_err(|_| ERROR_INVALID_ARGUMENT)?;
+            let sample_rate_hz = u32::try_from(request.arg1).map_err(|_| ERROR_INVALID_ARGUMENT)?;
+            let channels = u16::try_from(request.arg2).map_err(|_| ERROR_INVALID_ARGUMENT)?;
+            let period_frames = request.arg3 as u32;
+            let buffer_frames = (request.arg3 >> 32) as u32;
+            let config = AudioStreamConfig {
+                abi_version: FORGEAUDIO_ABI_VERSION,
+                flags: request.flags,
+                direction,
+                sample_format,
+                sample_rate_hz,
+                channels,
+                reserved0: 0,
+                period_frames,
+                buffer_frames,
+                reserved1: 0,
+            };
+            forgeaudio::configure_stream(object_id, config).map_err(map_audio_error)?;
+            let object = audio_object_ref(AudioObjectKind::Stream, object_id)?;
+            Ok(audio_response_for_object(
+                request.handle,
+                object,
+                titanweave_forgeaudio_abi::AudioStreamState::Configured as u32,
+            ))
+        }
+        AudioControlOp::PrepareStream => stream_transition_response(
+            request.handle,
+            titanweave_forgeaudio_abi::AudioStreamState::Prepared,
+            forgeaudio::prepare_stream,
+        ),
+        AudioControlOp::StartStream => stream_transition_response(
+            request.handle,
+            titanweave_forgeaudio_abi::AudioStreamState::Running,
+            forgeaudio::start_stream,
+        ),
+        AudioControlOp::StopStream => stream_transition_response(
+            request.handle,
+            titanweave_forgeaudio_abi::AudioStreamState::Stopped,
+            forgeaudio::stop_stream,
+        ),
+        AudioControlOp::DrainStream => stream_transition_response(
+            request.handle,
+            titanweave_forgeaudio_abi::AudioStreamState::Draining,
+            forgeaudio::drain_stream,
+        ),
+        AudioControlOp::RecoverStream => stream_transition_response(
+            request.handle,
+            titanweave_forgeaudio_abi::AudioStreamState::Configured,
+            forgeaudio::recover_stream,
+        ),
+        AudioControlOp::QueryPosition => {
+            let object = process::current_lookup(request.handle, RIGHT_READ)
+                .map_err(process::map_handle_error)?;
+            match object {
+                HandleObject::Audio { object_id, kind: AudioObjectKind::Stream } => {
+                    let position = forgeaudio::stream_position(object_id).ok_or(ERROR_NOT_FOUND)?;
+                    let object = audio_object_ref(AudioObjectKind::Stream, object_id)?;
+                    let mut response = audio_response_for_object(
+                        request.handle,
+                        object,
+                        position.state as u32,
+                    );
+                    response.value0 = position.frame_position;
+                    Ok(response)
+                }
+                HandleObject::Audio { object_id, kind: AudioObjectKind::Clock } => {
+                    let snapshot = forgeaudio::clock_snapshot(object_id).ok_or(ERROR_NOT_FOUND)?;
+                    let object = audio_object_ref(AudioObjectKind::Clock, object_id)?;
+                    let mut response = audio_response_for_object(request.handle, object, 0);
+                    response.flags = snapshot.flags;
+                    response.value0 = snapshot.tick;
+                    response.value1 = snapshot.nanoseconds;
+                    response.value2 = snapshot.frame_position;
+                    response.value3 =
+                        u64::from(snapshot.rate_numerator) | (u64::from(snapshot.rate_denominator) << 32);
+                    Ok(response)
+                }
+                _ => Err(ERROR_BAD_HANDLE),
+            }
+        }
+        AudioControlOp::CreateBuffer => {
+            let byte_capacity = u32::try_from(request.arg0).map_err(|_| ERROR_INVALID_ARGUMENT)?;
+            let frame_stride = u32::try_from(request.arg1).map_err(|_| ERROR_INVALID_ARGUMENT)?;
+            let object = forgeaudio::create_buffer(
+                process::current_pid(),
+                byte_capacity,
+                frame_stride,
+                request.flags,
+            )
+            .map_err(map_audio_error)?;
+            let handle = install_audio_handle(object, RIGHT_READ | RIGHT_WRITE | RIGHT_CLOSE)?;
+            let info = forgeaudio::buffer_info(object.object_id).ok_or(ERROR_PROCESS_FAULT)?;
+            let mut response = audio_response_for_object(handle, object, 0);
+            response.flags = info.flags;
+            response.value0 = u64::from(info.byte_capacity);
+            response.value1 = u64::from(info.frame_stride_bytes);
+            response.value2 = u64::from(info.frame_capacity);
+            Ok(response)
+        }
+        AudioControlOp::CreateClock => {
+            let rate_numerator = u32::try_from(request.arg0).map_err(|_| ERROR_INVALID_ARGUMENT)?;
+            let rate_denominator = u32::try_from(request.arg1).map_err(|_| ERROR_INVALID_ARGUMENT)?;
+            let object = forgeaudio::create_clock(process::current_pid(), rate_numerator, rate_denominator)
+                .map_err(map_audio_error)?;
+            let handle = install_audio_handle(object, RIGHT_READ | RIGHT_CLOSE)?;
+            Ok(audio_response_for_object(handle, object, 0))
+        }
+        AudioControlOp::CreateEvent => {
+            let object = forgeaudio::create_event(process::current_pid()).map_err(map_audio_error)?;
+            let handle = install_audio_handle(object, RIGHT_READ | RIGHT_CLOSE)?;
+            Ok(audio_response_for_object(handle, object, 0))
+        }
+        AudioControlOp::CreateFence => {
+            let object = forgeaudio::create_fence(process::current_pid(), request.arg0)
+                .map_err(map_audio_error)?;
+            let handle = install_audio_handle(object, RIGHT_READ | RIGHT_WRITE | RIGHT_CLOSE)?;
+            Ok(audio_response_for_object(handle, object, 0))
+        }
+        AudioControlOp::PollEvent => {
+            let object_id = lookup_audio_handle(request.handle, RIGHT_READ, AudioObjectKind::Event)?;
+            let Some(record) = forgeaudio::poll_event(object_id).map_err(map_audio_error)? else {
+                return Err(ERROR_WOULD_BLOCK);
+            };
+            let object = audio_object_ref(AudioObjectKind::Event, object_id)?;
+            let mut response = audio_response_for_object(request.handle, object, record.kind);
+            response.flags = record.code;
+            response.object_id = record.object_id;
+            response.value0 = record.sequence;
+            response.value1 = record.timestamp_tick;
+            response.value2 = record.value0;
+            response.value3 = record.value1;
+            Ok(response)
+        }
+        AudioControlOp::QueryFence => {
+            let object_id = lookup_audio_handle(request.handle, RIGHT_READ, AudioObjectKind::Fence)?;
+            let info = forgeaudio::fence_info(object_id).ok_or(ERROR_NOT_FOUND)?;
+            let object = audio_object_ref(AudioObjectKind::Fence, object_id)?;
+            let mut response = audio_response_for_object(request.handle, object, 0);
+            response.flags = info.flags;
+            response.value0 = info.target_value;
+            response.value1 = info.completed_value;
+            response.value2 = info.sequence;
+            Ok(response)
+        }
+        AudioControlOp::CloseObject => {
+            let object = process::current_lookup(request.handle, RIGHT_CLOSE)
+                .map_err(process::map_handle_error)?;
+            let HandleObject::Audio { object_id, kind } = object else {
+                return Err(ERROR_BAD_HANDLE);
+            };
+            forgeaudio::release_object(kind, object_id, process::current_pid()).map_err(map_audio_error)?;
+            process::current_close_handle(request.handle).map_err(process::map_handle_error)?;
+            Ok(AudioControlResponse {
+                abi_version: FORGEAUDIO_ABI_VERSION,
+                object_kind: kind as u32,
+                handle: 0,
+                state: titanweave_forgeaudio_abi::AudioStreamState::Closed as u32,
+                object_id,
+                generation: 0,
+                flags: 0,
+                value0: 0,
+                value1: 0,
+                value2: 0,
+                value3: 0,
+            })
+        }
+    }
+}
+
+fn stream_transition_response(
+    handle: Handle,
+    expected_state: titanweave_forgeaudio_abi::AudioStreamState,
+    operation: fn(u64) -> Result<(), &'static str>,
+) -> Result<AudioControlResponse, i64> {
+    let object_id = lookup_audio_handle(handle, RIGHT_WRITE, AudioObjectKind::Stream)?;
+    operation(object_id).map_err(map_audio_error)?;
+    let position = forgeaudio::stream_position(object_id).ok_or(ERROR_NOT_FOUND)?;
+    if position.state != expected_state {
+        return Err(ERROR_PROCESS_FAULT);
+    }
+    let object = audio_object_ref(AudioObjectKind::Stream, object_id)?;
+    let mut response = audio_response_for_object(handle, object, position.state as u32);
+    response.value0 = position.frame_position;
+    Ok(response)
+}
+
+fn install_audio_handle(
+    object: forgeaudio::AudioObjectRef,
+    rights: u32,
+) -> Result<Handle, i64> {
+    match process::current_allocate_handle(
+        HandleObject::Audio {
+            object_id: object.object_id,
+            kind: object.kind,
+        },
+        rights,
+    ) {
+        Ok(handle) => Ok(handle),
+        Err(error) => {
+            let _ = forgeaudio::release_object(object.kind, object.object_id, process::current_pid());
+            Err(process::map_handle_error(error))
+        }
+    }
+}
+
+fn lookup_audio_handle(
+    handle: Handle,
+    rights: u32,
+    expected_kind: AudioObjectKind,
+) -> Result<u64, i64> {
+    match process::current_lookup(handle, rights) {
+        Ok(HandleObject::Audio { object_id, kind }) if kind == expected_kind => Ok(object_id),
+        Ok(_) => Err(ERROR_BAD_HANDLE),
+        Err(error) => Err(process::map_handle_error(error)),
+    }
+}
+
+fn audio_object_ref(kind: AudioObjectKind, object_id: u64) -> Result<forgeaudio::AudioObjectRef, i64> {
+    let generation = forgeaudio::object_generation(kind, object_id).ok_or(ERROR_NOT_FOUND)?;
+    Ok(forgeaudio::AudioObjectRef {
+        kind,
+        object_id,
+        generation,
+    })
+}
+
+fn audio_response_for_object(
+    handle: Handle,
+    object: forgeaudio::AudioObjectRef,
+    state: u32,
+) -> AudioControlResponse {
+    AudioControlResponse {
+        abi_version: FORGEAUDIO_ABI_VERSION,
+        object_kind: object.kind as u32,
+        handle,
+        state,
+        object_id: object.object_id,
+        generation: object.generation,
+        flags: 0,
+        value0: 0,
+        value1: 0,
+        value2: 0,
+        value3: 0,
+    }
+}
+
+fn creates_audio_handle(operation: AudioControlOp) -> bool {
+    matches!(
+        operation,
+        AudioControlOp::OpenDevice
+            | AudioControlOp::OpenStream
+            | AudioControlOp::CreateBuffer
+            | AudioControlOp::CreateClock
+            | AudioControlOp::CreateEvent
+            | AudioControlOp::CreateFence
+    )
+}
+
+fn cleanup_new_audio_handle(handle: Handle) {
+    let Ok(HandleObject::Audio { object_id, kind }) = process::current_lookup(handle, RIGHT_CLOSE) else {
+        return;
+    };
+    let _ = forgeaudio::release_object(kind, object_id, process::current_pid());
+    let _ = process::current_close_handle(handle);
+}
+
+fn map_audio_error(error: &'static str) -> i64 {
+    match error {
+        "audio device not found"
+        | "audio stream parent device not found"
+        | "audio stream endpoint does not belong to device"
+        | "audio stream not found"
+        | "audio stream endpoint disappeared"
+        | "audio buffer not found"
+        | "ForgeAudio event object not found"
+        | "ForgeAudio fence not found" => ERROR_NOT_FOUND,
+        "ForgeAudio device table is full"
+        | "ForgeAudio endpoint table is full"
+        | "ForgeAudio stream table is full"
+        | "ForgeAudio buffer table is full"
+        | "ForgeAudio clock table is full"
+        | "ForgeAudio event table is full"
+        | "ForgeAudio fence table is full"
+        | "ForgeAudio event queue is full" => ERROR_NO_SPACE,
+        "stream configuration is invalid in current state"
+        | "stream must be configured before prepare"
+        | "stream must be prepared before start"
+        | "only a running stream can drain"
+        | "stream cannot stop from current state"
+        | "only a configured faulted stream can recover"
+        | "audio stream position advances only while active" => ERROR_INVALID_STATE,
+        "unsupported ForgeAudio ABI version" => ERROR_NOT_SUPPORTED,
+        _ => ERROR_INVALID_ARGUMENT,
+    }
+}
+
+fn copy_struct_from_user<T: Copy>(address: u64) -> Result<T, i64> {
+    if address == 0 {
+        return Err(ERROR_INVALID_ARGUMENT);
+    }
+    let mut value = core::mem::MaybeUninit::<T>::uninit();
+    let bytes = unsafe {
+        core::slice::from_raw_parts_mut(
+            value.as_mut_ptr().cast::<u8>(),
+            core::mem::size_of::<T>(),
+        )
+    };
+    process::current_copy_from_user(address, bytes).map_err(|_| ERROR_ACCESS_DENIED)?;
+    Ok(unsafe { value.assume_init() })
+}
+
+fn copy_struct_to_user<T: Copy>(address: u64, value: &T) -> Result<(), i64> {
+    if address == 0 {
+        return Err(ERROR_INVALID_ARGUMENT);
+    }
+    let bytes = unsafe {
+        core::slice::from_raw_parts(
+            (value as *const T).cast::<u8>(),
+            core::mem::size_of::<T>(),
+        )
+    };
+    process::current_copy_to_user(address, bytes).map_err(|_| ERROR_ACCESS_DENIED)
 }

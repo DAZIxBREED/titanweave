@@ -12,4 +12,5 @@ test = false
 bench = false
 
 [dependencies]
+titanweave-forgeaudio-abi = { path = "../../libraries/forgeaudio-abi" }
 titanweave-boot-protocol = { path = "../../libraries/boot-protocol" }
