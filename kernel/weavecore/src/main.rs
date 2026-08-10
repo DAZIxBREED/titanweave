@@ -6,6 +6,7 @@ mod framebuffer;
 mod graphics_abi;
 mod forgegraphics;
 mod forgeaudio;
+mod forgeaudio_dma;
 mod gpu_topology;
 mod gpu_memory;
 mod gpu_queue;
@@ -507,6 +508,28 @@ pub extern "C" fn weavecore_entry(boot_info_address: u64) -> ! {
             halt_forever();
         }
     }
+
+    let forgeaudio_dma_report = match forgeaudio_dma::run_self_test(
+        &mut allocator,
+        boot_info.bootstrap.page_table_root,
+    ) {
+        Ok(report) => report,
+        Err(error) => {
+            serial::println(format_args!("[FAIL] K15.3 ForgeAudio audio DMA transport qualification failed: {error}"));
+            halt_forever();
+        }
+    };
+    serial::println(format_args!(
+        "[K15DR] ForgeAudio DMA ready: version={} real_memory={} periods={} wraps={} underruns={} overruns={} translated_platform={} qemu_hda_deferred={}",
+        forgeaudio_dma_report.version,
+        forgeaudio_dma_report.real_dma_memory,
+        forgeaudio_dma_report.completed_playback_periods,
+        forgeaudio_dma_report.playback_wraps,
+        forgeaudio_dma_report.playback_underruns,
+        forgeaudio_dma_report.capture_overruns,
+        forgeaudio_dma_report.translated_platform_qualified,
+        forgeaudio_dma_report.hardware_audio_deferred,
+    ));
 
     match native_gpu::initialize_foundation() {
         Ok(state) => serial::println(format_args!(

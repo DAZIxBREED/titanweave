@@ -55,3 +55,9 @@ Qualified/frozen. Fedora/QEMU passed final queue/memory/interrupt/recovery stres
 
 ## K15.1 — ForgeAudio Real-Time Audio Execution Foundation
 Source-integrated; runtime qualification pending. Locked gate 1 of 16. Real RT scheduling class, period/deadline/budget accounting, fixed-priority plus deadline ordering, CPU affinity/reservation, priority inheritance through a bounded blocking RT mutex, bounded preemption protection and an eight-period ForgeAudio-style workload are implemented. No K15.2 work is authorized until the K15.1 runtime checker passes.
+
+## K15.2 — ForgeAudio Kernel ABI
+Qualified/frozen. Fedora/QEMU passed ABI v1 object lifecycle, zero fabricated devices, bounded buffers, monotonic clocks/events/fences, strict stream transitions/recovery, inherited K15.1/K14.C32 and intentional HALT.
+
+## K15.3 — ForgeAudio Audio DMA Transport
+Source-integrated; runtime qualification pending. Locked gate 3 of 16. Real contiguous DMA memory, bounded cyclic periods, explicit playback/capture ownership, cumulative position/wrap accounting, fail-closed translated-IOMMU hardware arming, IOVA device addressing and underrun/overrun detection are implemented. No HDA hardware or fake DMA/IRQ completion is claimed in QEMU; K15.4 remains blocked until this gate passes.

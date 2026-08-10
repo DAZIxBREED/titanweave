@@ -1,7 +1,7 @@
 ac231427a78d2c92114ba42f1637818b1b40f71552cac20a89b1651156426d5e  ./.cargo/config.toml
 991b8d305b103eaf22ead9888301c0288e4d2ea966c070a2c7fd35c639e70df0  ./.gitignore
-6ea82f176a68c66bfb1aebe7615732bad804c11b3a6b0128c08c1a705e7b3573  ./BUILD_STATUS.md
-edfb7686d3d3d3426e5541ad63465504e52584c0f1923cdb4b0ca962547ecfa5  ./COMPLETION_MATRIX.md
+782e863bd10f2947afdfaffe4448e0b5f92cf99ec2088471a3447fdd722512c5  ./BUILD_STATUS.md
+3d90fa14db5f843902b49b2952502e4278b558e6352de71f9bf3d3f15b906790  ./COMPLETION_MATRIX.md
 2e44741461b909f8b285b7dcdd44c6379985857a5e2aa420d004dad03fdd3431  ./Cargo.lock
 97e39b7cab6ad2b75b07010186d306be440be1b6d6f987cf5a74b1ee5e59d98e  ./Cargo.toml
 130a726ccec55050c31f7a4e342c7ee1ae7a618bd63a04046967f5e38212fedf  ./FOUNDATION_REPLACEMENT.md
@@ -129,10 +129,15 @@ e492cd6c14a6e97fa3fe664ed870ea5a8605fb0352fa8a43ff2fd0134fe021d4  ./K14_TESTER_G
 d90ae0eb0cf34a2012467a8437a36b3ec8f27596398d92cc7517e761627262ff  ./K15_1_SOURCE_VALIDATION.log
 3415923e4db889c684704737d7d9563d4221b16d2ad7855489bcc5870f25fe3d  ./K15_1_TESTER_GUIDE.md
 3a88b0044dce015b29485c000f5763918a649e67c863f9fa854ee329a4266419  ./K15_2_IMPLEMENTATION.md
-85b8537ac0c79ff1ec70429033f547cbc286a15dced5f7d0bb6651990f32791c  ./K15_2_SOURCE_STATUS.md
+257baf8bd405428f9378eb417fe81a34d811022e822f5e6c1193f078f07161bc  ./K15_2_RUNTIME_QUALIFICATION.log
+3741d3a5519793c98aec2c3b6ba717b8b852c8c56652c76344c291b8dc3894a7  ./K15_2_SOURCE_STATUS.md
 9dbd4f5bee253f8fcbdfce8e6409637aeab61644a73a648f890ac27f487c152f  ./K15_2_SOURCE_VALIDATION.log
 6c943e9bbe753e7b59df39b46747722fcc97cefc2d6161380a053890f354c152  ./K15_2_TESTER_GUIDE.md
-2f5a4545a73dd4ccaf0f8325be934696891dc23bc6bf841b911c94391bf1dec8  ./K15_STATUS.md
+21c2ab1782dd5e6e095334407cfc4b6e1b502a4d24db3be67d72a3f79dbc30a2  ./K15_3_IMPLEMENTATION.md
+8a4f667dab3ea334daa4a0cea028110ecc54bc8df45006889d2e069d44541af4  ./K15_3_SOURCE_STATUS.md
+08236a42a8d868d17f9c385054d80c7eabe7938f9be0d734865e3726fad4977e  ./K15_3_SOURCE_VALIDATION.log
+47cf76c19349c76ddf26edae8067053209a1ba29f1311f1adb02712dd25bef40  ./K15_3_TESTER_GUIDE.md
+9af95b8265ec9297310d7ef80394c465cfebc74b216536d592e7e50f8a321cf8  ./K15_STATUS.md
 d1dcebb1154ca9c5bf2df704bf5209cbf19224bbe5e257bac0e41b0d3fa87610  ./K15_STONE_CONTRACT.md
 58cc86a9e97d7bb7b79b5c764d32650c9aab2855802a3a2b94b66873a3ce8018  ./README.md
 f8420a22b2e4546e5b75b8419f3e5fdf5e511ba4fe57a289962823cb528281f7  ./UNBLOCK_STATUS.md
@@ -192,6 +197,7 @@ a67750a74997ef3f911c748be34e5dcc39f3058203d1d3030002de38122be62b  ./kernel/weave
 180f5888efc8413ea53e4b692ccc4198ea9b74c972eaedebf68533c74daded20  ./kernel/weavecore/src/elf.rs
 e1629b72f3b2e3741cba901ef74f4351c34d339a618631a198eb44e3c0298f77  ./kernel/weavecore/src/fat32.rs
 6fef018d874b066b49531b7ebedf57058d090f49d8263967054acdcb6a5b95c3  ./kernel/weavecore/src/forgeaudio.rs
+82e3f371dfed7443f06ddcf5a65c9032e06a84a650352f553699a35f0f3c1234  ./kernel/weavecore/src/forgeaudio_dma.rs
 2edbad8e50689d253e7291d466d5e20fc02b90f0c7106c05f0dd3cb5d1fe2f05  ./kernel/weavecore/src/forgebus.rs
 db74c323abc25dffc94b07d865df328de245c3adcd1613ed870598a333f79fea  ./kernel/weavecore/src/forgegraphics.rs
 2f5d6f049ca3fbfe35319e717bb47d1f5d4027b98a11f4321f7bd38ee60af660  ./kernel/weavecore/src/framebuffer.rs
@@ -218,7 +224,7 @@ e7e50325e391eacdec547c0a3bf7b4704498bacb616729132a3d80c8a9956ec4  ./kernel/weave
 9e00e081bb595e04f24485c265c85ea65501a1c436d81203ee7b2ffa18198f7e  ./kernel/weavecore/src/k11_backends.rs
 09bd47c688944a17dbd65a753e07e8025afc1b166013b390b69484a24d5c7a43  ./kernel/weavecore/src/k11_stress.rs
 281b687f0a70dd3335244feee592bc3303c776714e13ca0b0c3a269346091165  ./kernel/weavecore/src/kernel_runtime.rs
-5858122557c64425b3533554c557254bbb37ea0646c9186546fbebf71312a71c  ./kernel/weavecore/src/main.rs
+93ba212084faaaa7409d7df4233edf03a4d5d0665a1cdc2e0f1b6a1220f2c27f  ./kernel/weavecore/src/main.rs
 a5e100f3e86202c3dbde527908f8ba29b406a1bc555fc971207a1c22fc0332d6  ./kernel/weavecore/src/memory.rs
 f4e219007213daedf4ba254be344a4a5b3234a54f900e1b145eba264a17469de  ./kernel/weavecore/src/mount_namespace.rs
 bb559f2b70640ecb7f37dea106b66a220ba9ec2c59308482463b2a1e8d38bc9b  ./kernel/weavecore/src/msi.rs
@@ -374,6 +380,7 @@ afc1d7f6939ae49eaa494a72562dbb2eb31a784b18338434c39b76ce5024642c  ./tools/check-
 d74df5f075116231d6b16843ee937272e89c533c18f319614863286423625b64  ./tools/check-k14c9-serial-log.sh
 aa105860ada42969809c57151c98fbb023cfbcbd8c986cf21e0f8e1e3c2548e1  ./tools/check-k15-1-serial-log.sh
 b3860052126dde6c34de6af86bb5de9f371358b9e886c9b7404a63c66d865e25  ./tools/check-k15-2-serial-log.sh
+6e24309fd52fbb1a5eea70bf5c2d4e27cbcfd9ded66102fffb1bb6b0056d59f2  ./tools/check-k15-3-serial-log.sh
 dcb4daca5c26d256fc9ddcfb80e41a750e82104a1ba2b6b7c5f91f78fe74581a  ./tools/check-kernel-elf.py
 9adf51f404663ad890440967869525b251f3155df60341c8dd8405f46de36175  ./tools/check-serial-log.sh
 4a750e07ba04515401d3280b7fcc69bd928161f00803eca6e083ab9a961d005d  ./tools/collect-k11-report.sh
@@ -428,6 +435,7 @@ b57fc9da9f6bc570b8870506baa5455929e74d069c0d9e413ef9c67fa16994a9  ./tools/run-k1
 7b9ed03d928266db1345b475dda0202a59ec2b57cc07b8b15301f0a80b1ff04f  ./tools/run-k14c9-qemu-verified-profiles.sh
 8c294c38ad3a199d7f797c098ad343290fbf3b11425907e84747a5b605c536a9  ./tools/run-k15-1-qemu-forgeaudio-rt.sh
 47dd933c8206a6917a20dd1e6a83a383c7431377717317d91a06d371fa4fab5e  ./tools/run-k15-2-qemu-forgeaudio-abi.sh
+79d3d5a4226b445fa6faf5c76cc4b3e6d8bf6e5480b7737e5959ca4900d507c1  ./tools/run-k15-3-qemu-forgeaudio-dma.sh
 4000b4b809f877272eb4ae9314fd56255cae2a233ac56afc22935e9b103a6efd  ./tools/run-qemu.sh
 462fe20a9cf97e99a90695c0e7e9d8dd0655ccc99e24fe4a158d4d2bd67ba5b4  ./tools/setup-fedora.sh
 bd563098b3026c2b17b3cd3ec71dc5e9219bd1fca722ad3f882e0eec4f223c72  ./tools/test-foundation-replacements.py
@@ -482,7 +490,8 @@ ba6278d06d761e027a4b7eec2d4e0b739a7b30a201dec5a22d945eb00f845ca1  ./tools/test-k
 56d1fbb8bad5e080fb475003ab87357626bc7bed081e56a32a4e2473a28381f7  ./tools/test-k14c9-verified-profiles.py
 c30fa0f3ab1c661df213427c590d2e28213611d2e2bfbba77b392405e77397a4  ./tools/test-k15-1-forgeaudio-rt.py
 0977ffe6313bd8635b58f139986fcf0f9bd12527480f3314fb8e81dce974579d  ./tools/test-k15-2-forgeaudio-abi.py
-e9305f06f0e72847d71d1fc2c894524dc3477e26e05cab9078a2fbfe41a32cac  ./tools/validate-source.sh
+9a4e38f9597cd6fe16b7d4ac80f22357d5ca8ecfe2181f59c045a41721e0c3f0  ./tools/test-k15-3-forgeaudio-dma.py
+85af0841a8d50b1d9648c76cf6374fd4ab56156cb92a659e71a455c4023643e9  ./tools/validate-source.sh
 00f79e57caf1d7d9e968e8adff70bc3aacd2c1dd1bd5cdc46ea1bcb804a62f45  ./userspace/archive/archive.S
 83922e704082c7c71737580a0af7add4b3bd1a5f2682dc4a6598f5662d4b2a78  ./userspace/console/console.S
 71229132662b408c3078b15a613ec6535be04ac63249fc6ca39e947fedad7473  ./userspace/displayd/displayd.S

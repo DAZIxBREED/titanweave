@@ -1,6 +1,6 @@
 # Titanweave K15.2 ForgeAudio Kernel ABI — Source Status
 
-Status: **SOURCE-INTEGRATED / RUNTIME QUALIFICATION PENDING**
+Status: **QUALIFIED / FROZEN**
 
 Baseline: qualified/frozen K15.1.
 
@@ -21,4 +21,4 @@ Implemented in this gate:
 - boot-time K15.2 runtime self-test;
 - K15.2 source and serial qualification tools.
 
-K15.3 remains blocked until the Fedora/QEMU K15.2 runtime checker passes.
+Fedora/QEMU runtime qualification PASSED. K15.3 — Audio DMA Transport is unlocked.
