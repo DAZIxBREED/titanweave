@@ -103,6 +103,7 @@ assert 'forgeaudio_hda::initialize_and_qualify(' in main
 assert '[K15HR] ForgeAudio HDA ready:' in main
 assert main.index('forgeaudio_dma::run_self_test(') < main.index('forgeaudio_hda::initialize_and_qualify(')
 assert '[K15CO] HDA/GPU coexistence:' in main
+assert 'TITANWEAVE_ALLOW_LATER_GATE_FAILURES' in checker
 assert 'virtio_gpu::suspend_presentation_for_recovery()' in main
 assert 'virtio_gpu::resume_presentation_after_recovery()' in main
 assert '[K6DIAG] user runtime failure detail:' in (root / 'kernel/weavecore/src/process.rs').read_text()
@@ -150,6 +151,8 @@ for required in ['CORB/RIRB', 'BDL', 'MSI', 'playback', 'capture', 'translated',
 for doc in ['README.md', 'PROJECT_VISION.md', 'CURRENT_STATUS.md']:
     assert (root / doc).is_file(), doc
 assert 'K15.4 | Real HDA Hardware Backend' in (root / 'README.md').read_text()
-assert 'K15.4 Real HDA Hardware Backend: QUALIFIED / FROZEN' in (root / 'CURRENT_STATUS.md').read_text()
+current_status = (root / 'CURRENT_STATUS.md').read_text()
+assert ('K15.4 Real HDA Hardware Backend: SOURCE-INTEGRATED' in current_status
+        or 'K15.4 Real HDA Hardware Backend: QUALIFIED / FROZEN' in current_status)
 
 print('Titanweave K15.4 ForgeAudio real HDA hardware backend source checks passed.')

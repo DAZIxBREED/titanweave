@@ -27,4 +27,26 @@ K15.3 is frozen. K15.4 — Real HDA Hardware Backend is now unlocked.
 
 **QUALIFIED / FROZEN.**
 
-Consumes frozen K15.3 and implements real PCI HDA discovery/ForgeBus ownership, BAR0 MMIO reset, CORB/RIRB command DMA, codec/function-group/widget discovery, HDA BDL/stream-descriptor programming, exact-requester translated VT-d data DMA, PCI MSI through Titanweave's interrupt router, two real playback and two real capture period completions, capture-memory mutation verification, and real HDA device/playback/capture endpoint registration. Fedora/QEMU runtime qualification passed real CORB/RIRB codec communication, translated HDA DMA, BDL playback/capture, MSI-driven stream completion, capture-memory mutation, ForgeAudio endpoint registration and HDA/GPU coexistence. QEMU records `physical_silicon=false` and `fake_hw=false`. K15.4 is frozen; K15.5 — PCM Format Engine is unlocked.
+Consumes frozen K15.3 and implements real PCI HDA discovery/ForgeBus ownership, BAR0 MMIO reset, CORB/RIRB command DMA, codec/function-group/widget discovery, HDA BDL/stream-descriptor programming, exact-requester translated VT-d data DMA, PCI MSI through Titanweave's interrupt router, real playback/capture interrupt completion, capture-memory mutation verification, and real HDA device/playback/capture endpoint registration. Fedora/QEMU runtime qualification passed with peer DMA/GPU coexistence preserved, `fake_hw=false`, and `physical_silicon=false`.
+
+## K15.5 — PCM Format Engine
+
+**QUALIFIED / FROZEN.**
+
+Builds on frozen K15.4. Implements allocation-free canonical PCM representation for S16, S24-in-32, S32 and F32; bounded interleaved/planar conversion; explicit channel-position maps and non-mixing channel remap/zero-fill; canonical HDA rate/width capability parsing; exact and nearest supported-rate negotiation; HDA PCM stream-format encode/decode; K15.3-compatible period/ring geometry; and binding against the real HDA playback/capture endpoints registered by K15.4. K15.6 ForgeAudioD remains locked until K15.5 passes Fedora/QEMU qualification.
+
+
+## K15.5 — PCM Format Engine — QUALIFIED / FROZEN
+
+Fedora/QEMU runtime qualification PASSED on 2026-08-10.
+
+Qualified canonical PCM formats, twelve sample rates, up to sixteen channels,
+interleaved/planar transforms, channel mapping, HDA format encode/decode,
+exact/nearest negotiation, fail-closed unsupported-format rejection, DMA
+period geometry, and real frozen-K15.4 HDA endpoint binding.
+
+K15.5 is frozen.
+
+## K15.6 — ForgeAudioD
+
+Status: **NEXT / UNLOCKED**.

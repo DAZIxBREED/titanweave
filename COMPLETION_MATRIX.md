@@ -64,4 +64,7 @@ Qualified/frozen. Fedora/QEMU passed real contiguous DMA memory, bounded cyclic 
 
 
 ## K15.4 — ForgeAudio Real HDA Hardware Backend
-Qualified/frozen. Fedora/QEMU passed real PCI HDA discovery/ownership, controller reset, CORB/RIRB codec transport, widget discovery, BDL/stream descriptors, exact-requester translated DMA, MSI-driven playback/capture completion, capture-memory mutation, ForgeAudio HDA device/endpoint registration and peer-DMA/GPU coexistence. `fake_hw=false`; `physical_silicon=false`. K15.5 PCM Format Engine is unlocked.
+Qualified/frozen. Fedora/QEMU passed real PCI HDA discovery/ownership, controller reset, CORB/RIRB codec transport, widget discovery, BDL/stream descriptors, exact-requester translated DMA, MSI-driven playback/capture completion, capture-memory mutation, ForgeAudio HDA device/endpoint registration and peer-DMA/GPU coexistence. `fake_hw=false`; `physical_silicon=false`. K15.5 is unlocked.
+
+## K15.5 — ForgeAudio PCM Format Engine
+Source-integrated; runtime qualification pending. Locked gate 5 of 16. Canonical S16/S24-in-32/S32/F32 formats, bounded interleaved/planar conversion, named channel mapping without mixing, HDA capability/rate negotiation, HDA PCM stream-format encode/decode, K15.3-bounded DMA geometry and real K15.4 HDA endpoint binding are implemented. K15.6 remains blocked until this gate passes.

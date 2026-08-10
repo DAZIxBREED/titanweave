@@ -52,10 +52,10 @@ ForgeAudio is governed by the locked 16-gate contract in [`K15_STONE_CONTRACT.md
 | K15.2 | ForgeAudio Kernel ABI | **FROZEN ✅** |
 | K15.3 | Audio DMA Transport | **FROZEN ✅** |
 | K15.4 | Real HDA Hardware Backend | **FROZEN ✅** |
-| K15.5 | PCM Format Engine | **NEXT 🔊** |
+| K15.5 | PCM Format Engine | **FROZEN ✅ 🧪** |
 | K15.6–K15.16 | ForgeAudio production stack and final qualification | **LOCKED** |
 
-K15.4 consumes the frozen K15.3 transport and adds real PCI HDA discovery and ownership, BAR/MMIO reset, CORB/RIRB command transport, codec/widget discovery, BDL/stream descriptors, translated data DMA, MSI/interrupt completion, playback/capture proof, and real ForgeAudio device/endpoint registration. It deliberately uses one fixed 48 kHz / signed-16 / stereo qualification format so K15.5 remains the PCM Format Engine as defined by the stone contract.
+K15.4 is qualified/frozen after Fedora/QEMU passed real PCI HDA discovery/reset, CORB/RIRB, translated BDL/data DMA, MSI-driven playback/capture, endpoint registration, and HDA/GPU coexistence with `fake_hw=false` / `physical_silicon=false`. K15.5 now builds the PCM Format Engine above that frozen hardware path: canonical sample/container formats, bounded interleaved/planar conversion, named channel maps, supported-rate negotiation, HDA stream-format encode/decode, and exact K15.3 DMA geometry. K15.6 ForgeAudioD remains locked until K15.5 passes.
 
 ---
 

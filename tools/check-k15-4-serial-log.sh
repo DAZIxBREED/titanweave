@@ -96,7 +96,9 @@ for token in 'virtio_transport=true' 'driver_ok=true' 'bus_master=true' 'present
     if [[ "$gpu_coexist" == *"$token"* ]]; then echo "PASS  HDA/GPU $token"; else echo "FAIL  HDA/GPU coexistence missing $token" >&2; failed=1; fi
 done
 
-if grep -Fq '[FAIL]' "$LOG"; then
+# Standalone qualification remains strict. Later gates may reuse this checker
+# for inherited evidence while owning the final global [FAIL] scan themselves.
+if [[ "${TITANWEAVE_ALLOW_LATER_GATE_FAILURES:-0}" != '1' ]] && grep -Fq '[FAIL]' "$LOG"; then
     echo 'FAIL  serial log contains [FAIL]' >&2
     grep -F '[FAIL]' "$LOG" >&2 || true
     failed=1

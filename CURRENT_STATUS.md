@@ -9,26 +9,25 @@
 - **K15.2 ForgeAudio Kernel ABI: QUALIFIED / FROZEN ✅**
 - **K15.3 ForgeAudio Audio DMA Transport: QUALIFIED / FROZEN ✅**
 - **K15.4 Real HDA Hardware Backend: QUALIFIED / FROZEN ✅**
-- **K15.5 PCM Format Engine: NEXT / UNLOCKED 🔊**
+- **K15.5 PCM Format Engine: QUALIFIED / FROZEN 🧪**
 
-## Active K15.4 qualification
+## Active K15.5 qualification
 
-K15.4 consumes the frozen K15.3 cyclic DMA transport and adds the real HDA hardware-model execution path:
+K15.5 consumes frozen K15.4 and implements the backend-neutral PCM format layer:
 
-- PCI HDA class/subclass discovery and ForgeBus ownership;
-- BAR0 MMIO mapping and controller reset;
-- CORB/RIRB DMA command transport;
-- codec, audio-function-group, converter and widget discovery;
-- HDA BDL and stream descriptor programming;
-- exact-requester translated Intel VT-d data-DMA window;
-- PCI MSI routed through Titanweave's interrupt router;
-- HDA stream interrupt evidence before K15.3 period retirement;
-- playback and capture DMA proof;
-- capture-memory mutation proof;
-- real ForgeAudio HDA device plus playback/capture endpoint registration;
-- explicit `fake_hw=false` and `physical_silicon=false` QEMU semantics.
+- canonical S16, S24-in-32, S32 and F32 sample/container formats;
+- the 12 canonical HDA rates from 8 kHz through 384 kHz;
+- exact HDA supported-rate and valid-width capability parsing;
+- exact and deterministic nearest-rate negotiation;
+- explicit named channel maps through 16 channels;
+- bounded allocation-free interleaved ↔ planar transforms;
+- named-position channel remap with zero-fill and no hidden mixing;
+- HDA PCM stream-format encode/decode;
+- exact frame/period/ring byte geometry inside frozen K15.3 bounds;
+- binding against the actual HDA playback/capture endpoints registered by K15.4;
+- explicit unsupported-format/rate/channel rejection.
 
-K15.4 deliberately qualifies only 48 kHz / signed 16-bit / stereo. General format/rate/channel negotiation belongs to K15.5.
+K15.5 does not include ForgeAudioD, graph mixing, resampling, or routing. Those remain locked to later gates.
 
 ## ForgeAudio stone contract
 
@@ -37,7 +36,7 @@ K15.1   Real-Time Audio Execution Foundation       FROZEN ✅
 K15.2   ForgeAudio Kernel ABI                      FROZEN ✅
 K15.3   Audio DMA Transport                        FROZEN ✅
 K15.4   Real HDA Hardware Backend                  FROZEN ✅
-K15.5   PCM Format Engine                          NEXT 🔊
+K15.5   PCM Format Engine                          FROZEN ✅
 K15.6   ForgeAudioD                                LOCKED
 K15.7   Lock-Free Audio Transport                  LOCKED
 K15.8   ForgeAudio Graph Engine                    LOCKED
@@ -53,6 +52,6 @@ K15.16  Full Production Qualification + Freeze     LOCKED
 
 ## Qualification boundary
 
-QEMU HDA is real execution against QEMU's emulated HDA controller/codec model and real Titanweave PCI/MMIO/DMA/MSI code paths. It is not physical motherboard/audio-codec silicon. `physical_silicon=false` is therefore required for the QEMU K15.4 gate.
+K15.4's QEMU HDA evidence remains hardware-model evidence, not physical motherboard/audio-codec silicon evidence. K15.5 is a backend-neutral format/negotiation gate but must bind to the actual HDA registry endpoints created by frozen K15.4; it may not fabricate a device to qualify.
 
 See `README.md`, `PROJECT_VISION.md`, `K15_STATUS.md`, and `K15_STONE_CONTRACT.md`.

@@ -93,7 +93,9 @@ for token in 'version=1' 'real_memory=true' 'periods=12' 'wraps=3' 'underruns=1'
     fi
 done
 
-if grep -Fq '[FAIL]' "$LOG"; then
+# Standalone qualification remains strict. Later gates may reuse this checker
+# for inherited evidence while owning the final global [FAIL] scan themselves.
+if [[ "${TITANWEAVE_ALLOW_LATER_GATE_FAILURES:-0}" != '1' ]] && grep -Fq '[FAIL]' "$LOG"; then
     echo 'FAIL  serial log contains [FAIL]' >&2
     grep -F '[FAIL]' "$LOG" >&2 || true
     failed=1

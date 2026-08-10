@@ -8,6 +8,7 @@ mod forgegraphics;
 mod forgeaudio;
 mod forgeaudio_dma;
 mod forgeaudio_hda;
+mod forgeaudio_pcm;
 mod gpu_topology;
 mod gpu_memory;
 mod gpu_queue;
@@ -562,7 +563,6 @@ pub extern "C" fn weavecore_entry(boot_info_address: u64) -> ! {
         forgeaudio_hda_report.physical_silicon,
     ));
 
-
     // K15.4 must coexist with the already-frozen K13/K14 GPU transport.
     // Probe the existing recovery fence without performing a new presentation
     // or incrementing recovery counters: suspend then immediately rearm.
@@ -590,6 +590,33 @@ pub extern "C" fn weavecore_entry(boot_info_address: u64) -> ! {
             "[K15CO] HDA/GPU coexistence: virtio_transport=true driver_ok=true bus_master=true presentation_rearmed=true"
         ));
     }
+
+
+    let forgeaudio_pcm_report = match forgeaudio_pcm::run_self_test() {
+        Ok(report) => report,
+        Err(error) => {
+            serial::println(format_args!("[FAIL] K15.5 ForgeAudio PCM format engine qualification failed: {error}"));
+            halt_forever();
+        }
+    };
+    serial::println(format_args!(
+        "[K15PR] ForgeAudio PCM ready: version={} formats={} rates={} HDA_roundtrips={} interleaved_planar={} channel_mapping={} exact={} nearest={} geometry={} HDA_endpoint={} rate={} channels={} sample_format={:?} fake_device={}",
+        forgeaudio_pcm_report.version,
+        forgeaudio_pcm_report.canonical_formats,
+        forgeaudio_pcm_report.canonical_rates,
+        forgeaudio_pcm_report.hda_rate_roundtrips,
+        forgeaudio_pcm_report.interleaved_planar,
+        forgeaudio_pcm_report.channel_mapping,
+        forgeaudio_pcm_report.exact_negotiation,
+        forgeaudio_pcm_report.nearest_negotiation,
+        forgeaudio_pcm_report.period_geometry,
+        forgeaudio_pcm_report.hda_endpoint_bound,
+        forgeaudio_pcm_report.hardware_rate_hz,
+        forgeaudio_pcm_report.hardware_channels,
+        forgeaudio_pcm_report.hardware_sample_format,
+        forgeaudio_pcm_report.fake_device,
+    ));
+
 
     match native_gpu::initialize_foundation() {
         Ok(state) => serial::println(format_args!(
