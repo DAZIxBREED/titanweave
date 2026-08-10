@@ -86,6 +86,15 @@ struct ProcessRuntime {
     shell_completed: bool,
     displayd_recovery_result: i8,
     displayd_recovery_acknowledged: bool,
+    forgeaudiod_registered: bool,
+    forgeaudiod_ready: bool,
+    forgeaudiod_heartbeat: bool,
+    forgeaudiod_failed: bool,
+    forgeaudiod_pid: u64,
+    forgeaudiod_route_count: u32,
+    forgeaudiod_graph_generation: u32,
+    forgeaudiod_recovery_count: u32,
+    forgeaudiod_heartbeat_sequence: u64,
     allocator: *mut FrameAllocator<'static>,
 }
 
@@ -105,6 +114,15 @@ impl ProcessRuntime {
             shell_completed: false,
             displayd_recovery_result: 0,
             displayd_recovery_acknowledged: false,
+            forgeaudiod_registered: false,
+            forgeaudiod_ready: false,
+            forgeaudiod_heartbeat: false,
+            forgeaudiod_failed: false,
+            forgeaudiod_pid: 0,
+            forgeaudiod_route_count: 0,
+            forgeaudiod_graph_generation: 0,
+            forgeaudiod_recovery_count: 0,
+            forgeaudiod_heartbeat_sequence: 0,
             allocator: core::ptr::null_mut(),
         }
     }
@@ -142,6 +160,15 @@ pub fn launch_user_services(
             shell_completed: false,
             displayd_recovery_result: 0,
             displayd_recovery_acknowledged: false,
+            forgeaudiod_registered: false,
+            forgeaudiod_ready: false,
+            forgeaudiod_heartbeat: false,
+            forgeaudiod_failed: false,
+            forgeaudiod_pid: 0,
+            forgeaudiod_route_count: 0,
+            forgeaudiod_graph_generation: 0,
+            forgeaudiod_recovery_count: 0,
+            forgeaudiod_heartbeat_sequence: 0,
             allocator: (allocator as *mut FrameAllocator<'_>).cast::<FrameAllocator<'static>>(),
         };
     }
@@ -173,7 +200,7 @@ pub fn launch_user_services(
     }
 
     serial::println(format_args!(
-        "[INIT] Loaded init, logging, console, display, archive, and shell services from C:"
+        "[INIT] Loaded init, logging, console, display, archive, trust, driver, ForgeAudioD, and shell services from C:"
     ));
     serial::println(format_args!(
         "[IPC ] K5 capability channel retained as object={}",
@@ -238,7 +265,7 @@ fn create_process(
                 RIGHT_WRITE,
             )?;
         }
-        ServiceRole::Logging | ServiceRole::Console | ServiceRole::Shell | ServiceRole::Archive | ServiceRole::Trust | ServiceRole::DriverHost => {
+        ServiceRole::Logging | ServiceRole::Console | ServiceRole::Shell | ServiceRole::Archive | ServiceRole::Trust | ServiceRole::DriverHost | ServiceRole::Audio => {
             handles.install(CONSOLE_HANDLE, HandleObject::Console, RIGHT_WRITE)?;
         }
     }
@@ -283,6 +310,62 @@ pub fn runtime_active() -> bool {
 pub fn current_pid() -> ProcessId {
     let index = unsafe { (*RUNTIME.0.get()).current_index };
     with_process(index, |process| process.pid)
+}
+
+#[must_use]
+pub fn current_service_role() -> ServiceRole {
+    let index = unsafe { (*RUNTIME.0.get()).current_index };
+    SERVICE_SPECS[index].role
+}
+
+pub fn register_forgeaudiod() -> Result<u64, &'static str> {
+    if current_service_role() != ServiceRole::Audio {
+        return Err("ForgeAudioD registration denied for non-audio service");
+    }
+    let pid = current_pid();
+    let runtime = unsafe { &mut *RUNTIME.0.get() };
+    if runtime.forgeaudiod_registered && runtime.forgeaudiod_pid != pid {
+        return Err("ForgeAudioD singleton already registered");
+    }
+    runtime.forgeaudiod_registered = true;
+    runtime.forgeaudiod_pid = pid;
+    serial::println(format_args!("[K15D] ForgeAudioD registered: pid={} singleton=true userspace=true", pid));
+    Ok(pid)
+}
+
+pub fn note_forgeaudiod_ready(route_count: u32, graph_generation: u32, recovery_count: u32) -> Result<(), &'static str> {
+    let pid = current_pid();
+    let runtime = unsafe { &mut *RUNTIME.0.get() };
+    if !runtime.forgeaudiod_registered || runtime.forgeaudiod_pid != pid {
+        return Err("ForgeAudioD publish before registration");
+    }
+    runtime.forgeaudiod_ready = true;
+    runtime.forgeaudiod_route_count = route_count;
+    runtime.forgeaudiod_graph_generation = graph_generation;
+    runtime.forgeaudiod_recovery_count = recovery_count;
+    serial::println(format_args!(
+        "[K15D] ForgeAudioD ownership published: pid={} routes={} graph_generation={} recoveries={} ready=true",
+        pid, route_count, graph_generation, recovery_count
+    ));
+    Ok(())
+}
+
+pub fn note_forgeaudiod_heartbeat(sequence: u64) -> Result<(), &'static str> {
+    let pid = current_pid();
+    let runtime = unsafe { &mut *RUNTIME.0.get() };
+    if !runtime.forgeaudiod_registered || runtime.forgeaudiod_pid != pid || !runtime.forgeaudiod_ready {
+        return Err("ForgeAudioD heartbeat before ready");
+    }
+    if sequence == 0 {
+        return Err("ForgeAudioD heartbeat sequence must be non-zero");
+    }
+    if sequence <= runtime.forgeaudiod_heartbeat_sequence {
+        return Err("ForgeAudioD heartbeat sequence must advance");
+    }
+    runtime.forgeaudiod_heartbeat_sequence = sequence;
+    runtime.forgeaudiod_heartbeat = true;
+    serial::println(format_args!("[K15D] ForgeAudioD heartbeat: pid={} sequence={} persistent=true", pid, sequence));
+    Ok(())
 }
 
 
@@ -483,7 +566,13 @@ pub fn acknowledge_displayd_recovery_write() {
 
 fn qualification_result() -> Option<u64> {
     let runtime = unsafe { &*RUNTIME.0.get() };
-    if !runtime.shell_completed || !runtime.displayd_recovery_acknowledged {
+    let audio_server_required = crate::forgeaudio::device_count() != 0;
+    if audio_server_required && runtime.forgeaudiod_failed {
+        return Some(1);
+    }
+    if !runtime.shell_completed || !runtime.displayd_recovery_acknowledged
+        || (audio_server_required && (!runtime.forgeaudiod_ready || !runtime.forgeaudiod_heartbeat))
+    {
         return None;
     }
     if runtime.faulted != 0 || runtime.displayd_recovery_result < 0 {
@@ -497,6 +586,11 @@ fn qualification_result() -> Option<u64> {
 
 fn finish_qualification_if_ready() {
     let Some(result) = qualification_result() else { return };
+    if crate::forgeaudio::device_count() != 0 {
+        serial::println(format_args!(
+            "[K15D] required ForgeAudioD ready+heartbeat milestones complete; userspace qualification may close"
+        ));
+    }
     serial::println(format_args!(
         "[QUAL] shell and DISPLAYD recovery milestones complete; stopping persistent services"
     ));
@@ -576,6 +670,14 @@ pub fn exit_current(frame: *mut UserTrapFrame, exit_code: u64) -> *mut UserTrapF
     });
     unsafe { (*RUNTIME.0.get()).exited += 1 };
     serial::println(format_args!("[PROC] pid={} exited with code {}", pid, exit_code));
+
+    if SERVICE_SPECS[index].role == ServiceRole::Audio && crate::forgeaudio::device_count() != 0 {
+        unsafe { (*RUNTIME.0.get()).forgeaudiod_failed = true };
+        serial::println(format_args!(
+            "[K15D] ForgeAudioD exited unexpectedly during required HDA service lifetime: code={}",
+            exit_code
+        ));
+    }
 
     // K13.D has two independent userspace qualification controllers: the
     // scripted shell and DISPLAYD's recovery handshake.  Shell completion no
@@ -758,13 +860,32 @@ pub extern "C" fn weave_user_exit_resume(result: u64) -> ! {
     ));
     if result != 0 {
         serial::println(format_args!(
-            "[K6DIAG] user runtime failure detail: exited={} count={} faulted={} shell_completed={} displayd_recovery_result={} displayd_recovery_acknowledged={}",
+            "[K6DIAG] user runtime failure detail: exited={} count={} faulted={} shell_completed={} displayd_recovery_result={} displayd_recovery_acknowledged={} forgeaudiod_registered={} forgeaudiod_ready={} forgeaudiod_heartbeat={} forgeaudiod_failed={}",
             runtime.exited, runtime.count, runtime.faulted, runtime.shell_completed,
-            runtime.displayd_recovery_result, runtime.displayd_recovery_acknowledged
+            runtime.displayd_recovery_result, runtime.displayd_recovery_acknowledged,
+            runtime.forgeaudiod_registered, runtime.forgeaudiod_ready, runtime.forgeaudiod_heartbeat, runtime.forgeaudiod_failed
         ));
         serial::println(format_args!("[FAIL] K6 user runtime reported failure"));
         halt_forever();
     }
+    if crate::forgeaudio::device_count() != 0 {
+        if !runtime.forgeaudiod_registered || !runtime.forgeaudiod_ready || !runtime.forgeaudiod_heartbeat {
+            serial::println(format_args!("[FAIL] K15.6 ForgeAudioD post-userspace qualification state incomplete"));
+            halt_forever();
+        }
+        serial::println(format_args!(
+            "[K15OK] K15.6 ForgeAudioD userspace audio server qualified: userspace=true singleton=true device_ownership=true streams=true routing=true clocks=true buffers=true telemetry=true recovery=true persistent=true"
+        ));
+        serial::println(format_args!(
+            "[K15SR] ForgeAudioD ready: pid={} routes={} graph_generation={} recoveries={} heartbeat_sequence={} persistent=true",
+            runtime.forgeaudiod_pid,
+            runtime.forgeaudiod_route_count,
+            runtime.forgeaudiod_graph_generation,
+            runtime.forgeaudiod_recovery_count,
+            runtime.forgeaudiod_heartbeat_sequence,
+        ));
+    }
+
     serial::println(format_args!(
         "[KERN] K13.D alive: GPU resilience, multi-GPU policy, buffered presentation, VirtIO-GPU transport, graphics, ForgeBus, storage, VFS, and native services verified"
     ));

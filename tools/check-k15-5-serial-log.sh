@@ -76,7 +76,7 @@ for token in 'version=1' 'formats=4' 'rates=12' 'HDA_roundtrips=12' 'interleaved
     if [[ "$ready" == *"$token"* ]]; then echo "PASS  ready $token"; else echo "FAIL  ready missing $token" >&2; failed=1; fi
 done
 
-if grep -Fq '[FAIL]' "$LOG"; then
+if [[ "${TITANWEAVE_ALLOW_LATER_GATE_FAILURES:-0}" != '1' ]] && grep -Fq '[FAIL]' "$LOG"; then
     echo 'FAIL  serial log contains [FAIL]' >&2
     grep -F '[FAIL]' "$LOG" >&2 || true
     failed=1

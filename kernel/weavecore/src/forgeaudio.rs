@@ -1262,3 +1262,76 @@ pub fn run_abi_self_test() -> Result<(), &'static str> {
     ));
     Ok(())
 }
+
+// K15.6 ForgeAudioD ownership introspection. This is a kernel-side validation
+// helper for the privileged userspace audio server; it does not change the
+// frozen K15.2 object lifecycle or expose object tables to ordinary clients.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ForgeAudioServerOwnershipSnapshot {
+    pub streams: u32,
+    pub playback_streams: u32,
+    pub capture_streams: u32,
+    pub prepared_streams: u32,
+    pub buffers: u32,
+    pub clocks: u32,
+    pub events: u32,
+    pub fences: u32,
+}
+
+#[must_use]
+pub fn server_ownership_snapshot(
+    owner_pid: u64,
+    device_object_id: u64,
+) -> Option<ForgeAudioServerOwnershipSnapshot> {
+    let state = STATE.lock();
+    if !state
+        .devices
+        .iter()
+        .any(|slot| slot.occupied && slot.info.object_id == device_object_id)
+    {
+        return None;
+    }
+
+    let mut snapshot = ForgeAudioServerOwnershipSnapshot::default();
+    for slot in state.streams.iter().filter(|slot| {
+        slot.occupied && slot.owner_pid == owner_pid && slot.device_object_id == device_object_id
+    }) {
+        snapshot.streams = snapshot.streams.saturating_add(1);
+        match AudioDirection::from_raw(slot.config.direction) {
+            Some(AudioDirection::Playback) => {
+                snapshot.playback_streams = snapshot.playback_streams.saturating_add(1)
+            }
+            Some(AudioDirection::Capture) => {
+                snapshot.capture_streams = snapshot.capture_streams.saturating_add(1)
+            }
+            Some(AudioDirection::Duplex) | None => {}
+        }
+        if matches!(
+            slot.state,
+            AudioStreamState::Prepared | AudioStreamState::Running | AudioStreamState::Draining
+        ) {
+            snapshot.prepared_streams = snapshot.prepared_streams.saturating_add(1);
+        }
+    }
+    snapshot.buffers = state
+        .buffers
+        .iter()
+        .filter(|slot| slot.occupied && slot.owner_pid == owner_pid)
+        .count() as u32;
+    snapshot.clocks = state
+        .clocks
+        .iter()
+        .filter(|slot| slot.occupied && slot.owner_pid == owner_pid)
+        .count() as u32;
+    snapshot.events = state
+        .events
+        .iter()
+        .filter(|slot| slot.occupied && slot.owner_pid == owner_pid)
+        .count() as u32;
+    snapshot.fences = state
+        .fences
+        .iter()
+        .filter(|slot| slot.occupied && slot.owner_pid == owner_pid)
+        .count() as u32;
+    Some(snapshot)
+}

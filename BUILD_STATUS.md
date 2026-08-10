@@ -45,3 +45,8 @@ K15.4 historical source-integration note: built from frozen K15.3 with exact PCI
 K15.4: qualified/frozen. Fedora/QEMU passed real PCI HDA controller discovery/reset, CORB/RIRB codec transport, widget discovery, exact-requester translated BDL/data DMA, PCI MSI through Titanweave's interrupt router, two playback + two capture hardware periods, 2048 frames each direction, capture-memory mutation, HDA endpoint registration, peer-DMA preservation and HDA/GPU coexistence. `fake_hw=false`; `physical_silicon=false`. K15.5 is unlocked.
 
 K15.5: source-integrated from frozen K15.4. Adds the allocation-free PCM Format Engine: canonical S16/S24-in-32/S32/F32 memory formats, 12 canonical HDA rates, bounded interleaved/planar conversion, named channel maps/remapping without mixing, HDA rate/width capability parsing, exact/nearest rate negotiation, HDA stream-format encode/decode, K15.3-bounded period geometry, real K15.4 HDA endpoint binding, and fail-closed unsupported requests. Runtime qualification remains pending before K15.6 ForgeAudioD.
+
+
+K15.5: qualified/frozen. Fedora/QEMU passed the PCM Format Engine with four canonical formats, twelve HDA rates, bounded allocation-free interleaved/planar conversion, named channel mapping, exact/nearest rate negotiation, HDA stream-format round trips, K15.3-bounded DMA geometry and real K15.4 HDA endpoint binding.
+
+K15.6: source-integrated from frozen K15.5. Adds real ForgeAudioD userspace device/stream ownership, bounded buffers, clock/event/fence control objects, two-route graph-control metadata, recovery/rebuild handling, syscall-47 singleton/ownership publication, kernel cross-validation and a persistent post-yield heartbeat. Runtime qualification remains pending before K15.7.

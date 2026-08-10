@@ -30,7 +30,7 @@ checks={
  'kernel/weavecore/src/volume_events.rs':['VolumeEventKind','EventRing'],
  'kernel/weavecore/src/mount_namespace.rs':['MountNamespace','MountGrant'],
  'kernel/weavecore/src/vfs.rs':['mount_boot_volume','with_file'],
- 'kernel/weavecore/src/service.rs':['ARCHIVE.ELF','DRIVERD.ELF','DISPLAYD.ELF','ServiceRole::Display'],
+ 'kernel/weavecore/src/service.rs':['ARCHIVE.ELF','DRIVERD.ELF','DISPLAYD.ELF','AUDIOD.ELF','ServiceRole::Display','ServiceRole::Audio'],
  'kernel/weavecore/src/device.rs':['DeviceRegistry','DeviceState','MAX_DEVICES'],
  'kernel/weavecore/src/driver.rs':['DriverRegistry','DriverIsolation','report_crash'],
  'kernel/weavecore/src/dma.rs':['DmaManager','DmaDomain','unmap'],
@@ -73,7 +73,7 @@ checks={
 for rel,tokens in checks.items():
  text=(root/rel).read_text()
  for token in tokens: assert token in text,f'{rel}: {token}'
-for app in ['init','logd','console','displayd','archive','trustd','driverd','shell']:
+for app in ['init','logd','console','displayd','archive','trustd','driverd','forgeaudiod','shell']:
     assert (root/f'userspace/{app}/{app}.S').is_file()
 assert (root/'docs/architecture/K12.md').is_file()
 assert (root/'docs/architecture/K13.md').is_file()
@@ -162,7 +162,7 @@ if command -v clang >/dev/null 2>&1; then
 fi
 if command -v clang >/dev/null 2>&1 && command -v ld.lld >/dev/null 2>&1; then
   "$ROOT/tools/build-userspace.sh" >/dev/null
-  for app in INIT LOGD CONSOL DISPLAYD ARCHIVE TRUSTD DRIVERD SHELL; do
+  for app in INIT LOGD CONSOL DISPLAYD ARCHIVE TRUSTD DRIVERD AUDIOD SHELL; do
     elf="$ROOT/build/userspace/$app.ELF"
     readelf -h "$elf" | grep -q 'EXEC (Executable file)'
     readelf -l "$elf" | grep -q 'LOAD'
@@ -228,4 +228,5 @@ python3 "$ROOT/tools/test-k15-2-forgeaudio-abi.py"
 python3 "$ROOT/tools/test-k15-3-forgeaudio-dma.py"
 python3 "$ROOT/tools/test-k15-4-forgeaudio-hda.py"
 python3 "$ROOT/tools/test-k15-5-forgeaudio-pcm.py"
-echo "Titanweave K1-K15.5 integrated source validation passed; K15.5 runtime qualification pending."
+python3 "$ROOT/tools/test-k15-6-forgeaudiod.py"
+echo "Titanweave K1-K15.6 integrated source validation passed; K15.6 runtime qualification pending."

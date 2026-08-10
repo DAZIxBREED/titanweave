@@ -33,20 +33,11 @@ Consumes frozen K15.3 and implements real PCI HDA discovery/ForgeBus ownership, 
 
 **QUALIFIED / FROZEN.**
 
-Builds on frozen K15.4. Implements allocation-free canonical PCM representation for S16, S24-in-32, S32 and F32; bounded interleaved/planar conversion; explicit channel-position maps and non-mixing channel remap/zero-fill; canonical HDA rate/width capability parsing; exact and nearest supported-rate negotiation; HDA PCM stream-format encode/decode; K15.3-compatible period/ring geometry; and binding against the real HDA playback/capture endpoints registered by K15.4. K15.6 ForgeAudioD remains locked until K15.5 passes Fedora/QEMU qualification.
+Builds on frozen K15.4. Implements allocation-free canonical PCM representation for S16, S24-in-32, S32 and F32; bounded interleaved/planar conversion; explicit channel-position maps and non-mixing channel remap/zero-fill; canonical HDA rate/width capability parsing; exact and nearest supported-rate negotiation; HDA PCM stream-format encode/decode; K15.3-compatible period/ring geometry; and binding against the real HDA playback/capture endpoints registered by K15.4. Fedora/QEMU runtime qualification passed canonical PCM formats, rate negotiation, interleaved/planar conversion, channel mapping, HDA encode/decode, bounded period geometry and real HDA endpoint binding. K15.5 is frozen.
 
-
-## K15.5 — PCM Format Engine — QUALIFIED / FROZEN
-
-Fedora/QEMU runtime qualification PASSED on 2026-08-10.
-
-Qualified canonical PCM formats, twelve sample rates, up to sixteen channels,
-interleaved/planar transforms, channel mapping, HDA format encode/decode,
-exact/nearest negotiation, fail-closed unsupported-format rejection, DMA
-period geometry, and real frozen-K15.4 HDA endpoint binding.
-
-K15.5 is frozen.
 
 ## K15.6 — ForgeAudioD
 
-Status: **NEXT / UNLOCKED**.
+**QUALIFIED / FROZEN.**
+
+Builds directly on frozen K15.5. Adds a real persistent `forgeaudiod` userspace service, singleton kernel registration, real HDA device/endpoint ownership, prepared playback/capture streams, bounded server buffers, clock/event/fence ownership, two-route control metadata with generation tracking, userspace recovery/rebuild proof, kernel-validated ownership publication, and a post-yield persistent heartbeat. K15.7 remains locked until K15.6 runtime qualification passes.

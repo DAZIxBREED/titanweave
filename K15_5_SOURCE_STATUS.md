@@ -22,4 +22,4 @@ Implemented in this gate:
 
 No K15.6 ForgeAudioD, graph, resampler or mixer implementation is included.
 
-Fedora/QEMU must runtime-qualify K15.5 before it is frozen and K15.6 is unlocked.
+Fedora/QEMU runtime qualification PASSED on 2026-08-10. K15.5 is frozen and K15.6 — ForgeAudioD is unlocked.

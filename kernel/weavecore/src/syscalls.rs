@@ -300,6 +300,10 @@ pub extern "C" fn weave_syscall_dispatch(frame: *mut UserTrapFrame) -> *mut User
             unsafe { (*frame).rax = syscall_audio_control(a1, a2, a3, a4, a5) };
             frame
         }
+        SYS_AUDIO_SERVER_CONTROL => {
+            unsafe { (*frame).rax = syscall_audio_server_control(a1, a2, a3, a4, a5) };
+            frame
+        }
         SYS_GPU_RECOVER => {
             let authorized = matches!(
                 process::current_lookup(a1 as Handle, RIGHT_WRITE),
@@ -467,6 +471,101 @@ fn syscall_system_query(query: u64) -> u64 {
     }
 }
 
+
+
+fn syscall_audio_server_control(
+    operation: u64,
+    arg0: u64,
+    arg1: u64,
+    arg2: u64,
+    arg3: u64,
+) -> u64 {
+    const REGISTER: u64 = 1;
+    const PUBLISH: u64 = 2;
+    const HEARTBEAT: u64 = 3;
+
+    match operation {
+        REGISTER => {
+            if arg0 != 0 || arg1 != 0 || arg2 != 0 || arg3 != 0 {
+                return encode_error(ERROR_INVALID_ARGUMENT);
+            }
+            match process::register_forgeaudiod() {
+                Ok(pid) => pid,
+                Err("ForgeAudioD singleton already registered") => encode_error(ERROR_BUSY),
+                Err(_) => encode_error(ERROR_ACCESS_DENIED),
+            }
+        }
+        PUBLISH => {
+            let device_handle = arg0 as Handle;
+            let Ok(route_count) = u32::try_from(arg1) else {
+                return encode_error(ERROR_INVALID_ARGUMENT);
+            };
+            let Ok(graph_generation) = u32::try_from(arg2) else {
+                return encode_error(ERROR_INVALID_ARGUMENT);
+            };
+            let Ok(recovery_count) = u32::try_from(arg3) else {
+                return encode_error(ERROR_INVALID_ARGUMENT);
+            };
+            if route_count != 2 || graph_generation == 0 || recovery_count == 0 {
+                return encode_error(ERROR_INVALID_ARGUMENT);
+            }
+            let device_object_id = match process::current_lookup(device_handle, RIGHT_READ) {
+                Ok(HandleObject::Audio { object_id, kind: AudioObjectKind::Device }) => object_id,
+                Ok(_) => return encode_error(ERROR_BAD_HANDLE),
+                Err(error) => return encode_error(process::map_handle_error(error)),
+            };
+            let Some(snapshot) = forgeaudio::server_ownership_snapshot(
+                process::current_pid(),
+                device_object_id,
+            ) else {
+                return encode_error(ERROR_NOT_FOUND);
+            };
+            if snapshot.streams < 2
+                || snapshot.playback_streams == 0
+                || snapshot.capture_streams == 0
+                || snapshot.prepared_streams < 2
+                || snapshot.buffers < 2
+                || snapshot.clocks == 0
+                || snapshot.events == 0
+                || snapshot.fences == 0
+            {
+                return encode_error(ERROR_NOT_READY);
+            }
+            if process::note_forgeaudiod_ready(route_count, graph_generation, recovery_count).is_err() {
+                return encode_error(ERROR_ACCESS_DENIED);
+            }
+            serial::println(format_args!(
+                "[K15D] ForgeAudioD ownership verified: device={:#x} streams={} playback={} capture={} prepared={} buffers={} clocks={} events={} fences={} routes={} graph_generation={} recovery=true",
+                device_object_id,
+                snapshot.streams,
+                snapshot.playback_streams,
+                snapshot.capture_streams,
+                snapshot.prepared_streams,
+                snapshot.buffers,
+                snapshot.clocks,
+                snapshot.events,
+                snapshot.fences,
+                route_count,
+                graph_generation,
+            ));
+            u64::from(snapshot.streams)
+                | (u64::from(snapshot.buffers) << 8)
+                | (u64::from(snapshot.clocks) << 16)
+                | (u64::from(snapshot.events) << 24)
+                | (u64::from(snapshot.fences) << 32)
+        }
+        HEARTBEAT => {
+            if arg0 == 0 || arg1 != 0 || arg2 != 0 || arg3 != 0 {
+                return encode_error(ERROR_INVALID_ARGUMENT);
+            }
+            match process::note_forgeaudiod_heartbeat(arg0) {
+                Ok(()) => arg0,
+                Err(_) => encode_error(ERROR_INVALID_STATE),
+            }
+        }
+        _ => encode_error(ERROR_INVALID_ARGUMENT),
+    }
+}
 
 fn syscall_audio_abi_query(output_address: u64, output_length: u64) -> u64 {
     if output_length != core::mem::size_of::<AudioAbiInfo>() as u64 {

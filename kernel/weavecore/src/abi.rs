@@ -46,6 +46,7 @@ pub const SYS_NATIVE_GPU_C32_QUERY: u64 = 43;
 pub const SYS_AUDIO_ABI_QUERY: u64 = 44;
 pub const SYS_AUDIO_ENUMERATE: u64 = 45;
 pub const SYS_AUDIO_CONTROL: u64 = 46;
+pub const SYS_AUDIO_SERVER_CONTROL: u64 = 47;
 
 pub const ERROR_INVALID_ARGUMENT: i64 = -1;
 pub const ERROR_BAD_HANDLE: i64 = -2;

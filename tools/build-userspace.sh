@@ -5,13 +5,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$ROOT/build/userspace"
 mkdir -p "$OUT"
 
-for app in init logd console displayd archive trustd driverd shell; do
+for app in init logd console displayd archive trustd driverd forgeaudiod shell; do
     upper="$(printf '%s' "$app" | tr '[:lower:]' '[:upper:]')"
     if [[ "$upper" == "TRUSTD" ]]; then
         upper="TRUSTD"
     fi
     if [[ "$upper" == "CONSOLE" ]]; then
         upper="CONSOL"
+    fi
+    if [[ "$upper" == "FORGEAUDIOD" ]]; then
+        upper="AUDIOD"
     fi
     clang -c -m64 -ffreestanding -fno-pic -nostdlib \
         -I"$ROOT" \

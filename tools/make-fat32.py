@@ -92,6 +92,7 @@ def main() -> int:
         Node(short("ARCHIVE.ELF"), (args.userspace / "ARCHIVE.ELF").read_bytes()),
         Node(short("TRUSTD.ELF"), (args.userspace / "TRUSTD.ELF").read_bytes()),
         Node(short("DRIVERD.ELF"), (args.userspace / "DRIVERD.ELF").read_bytes()),
+        Node(short("AUDIOD.ELF"), (args.userspace / "AUDIOD.ELF").read_bytes()),
         Node(
             short("SERVICES.CFG"),
             b"init=C:\\SYSTEM\\SERVICES\\INIT.ELF\r\n"
@@ -101,7 +102,8 @@ def main() -> int:
             b"shell=C:\\SYSTEM\\SERVICES\\SHELL.ELF\r\n"
             b"archive=C:\\SYSTEM\\SERVICES\\ARCHIVE.ELF\r\n"
             b"trust=C:\\SYSTEM\\SERVICES\\TRUSTD.ELF\r\n"
-            b"drivers=C:\\SYSTEM\\SERVICES\\DRIVERD.ELF\r\n",
+            b"drivers=C:\\SYSTEM\\SERVICES\\DRIVERD.ELF\r\n"
+            b"audio=C:\\SYSTEM\\SERVICES\\AUDIOD.ELF\r\n",
         ),
     ]
     boot_cmd = Node(

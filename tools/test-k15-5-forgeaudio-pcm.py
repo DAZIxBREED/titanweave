@@ -14,7 +14,8 @@ k154 = (root / 'K15_4_SOURCE_STATUS.md').read_text()
 
 assert 'Status: **QUALIFIED / FROZEN**' in k154
 assert '5. **K15.5 — PCM Format Engine**' in stone
-assert 'Status: **SOURCE-INTEGRATED / RUNTIME QUALIFICATION PENDING**' in status
+assert 'Status: **QUALIFIED / FROZEN**' in status
+assert (root / 'K15_5_RUNTIME_QUALIFICATION.md').is_file()
 
 for token in [
     'FORGEAUDIO_PCM_ENGINE_VERSION: u32 = 1',

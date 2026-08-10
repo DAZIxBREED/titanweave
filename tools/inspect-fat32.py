@@ -33,7 +33,7 @@ def main() -> int:
     root_e=entries(root); system=next(e for e in root_e if e[0]==short('SYSTEM'))
     sys_e=entries(system[2]); services=next(e for e in sys_e if e[0]==short('SERVICES'))
     svc_e=entries(services[2]); names={e[0] for e in svc_e}
-    for required in ['INIT.ELF','LOGD.ELF','CONSOL.ELF','SHELL.ELF','SERVICES.CFG']:
+    for required in ['INIT.ELF','LOGD.ELF','CONSOL.ELF','DISPLAYD.ELF','ARCHIVE.ELF','TRUSTD.ELF','DRIVERD.ELF','AUDIOD.ELF','SHELL.ELF','SERVICES.CFG']:
         assert short(required) in names, required
     print(f'FAT32 image valid: {len(data)} bytes, {len(svc_e)} service entries')
     return 0
