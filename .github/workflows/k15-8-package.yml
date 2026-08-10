@@ -1,0 +1,61 @@
+name: K15.8 Integrated Package
+
+on:
+  push:
+    branches: [k15-8]
+    paths:
+      - '.github/workflows/k15-8-package.yml'
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout K15.8 source
+        uses: actions/checkout@v4
+
+      - name: Integrate K15.8 into frozen K15.7 baseline
+        run: |
+          python3 tools/apply-k15-8-integration.py
+          chmod +x tools/run-k15-8-qemu-forgeaudio-graph.sh
+          chmod +x tools/check-k15-8-serial-log.sh
+
+      - name: Source validation
+        run: ./tools/validate-source.sh
+
+      - name: Record K15.8 package validation
+        run: |
+          cat > K15_8_PACKAGE_VALIDATION.md <<'EOF'
+          # Titanweave K15.8 Package Validation
+
+          This package was assembled from the qualified K15.7 baseline and the K15.8 ForgeAudio Graph Engine source.
+
+          GitHub packaging validation ran `./tools/validate-source.sh` after surgical K15.8 integration. Fedora/QEMU runtime qualification is still required before K15.8 may be frozen or K15.9 unlocked.
+          EOF
+          rm -f tools/apply-k15-8-integration.py
+          find . -type f -not -path './.git/*' -not -path './build/*' -not -path './target/*' -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > SOURCE_MANIFEST.sha256
+
+      - name: Assemble full integrated tree
+        run: |
+          mkdir -p /tmp/titanweave-kernel-k15-8-integrated
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='build' \
+            --exclude='target' \
+            ./ /tmp/titanweave-kernel-k15-8-integrated/
+          cd /tmp
+          zip -qr titanweave-kernel-k15-8-integrated.zip titanweave-kernel-k15-8-integrated
+          sha256sum titanweave-kernel-k15-8-integrated.zip > titanweave-kernel-k15-8-integrated.zip.sha256
+
+      - name: Upload K15.8 integrated package
+        uses: actions/upload-artifact@v4
+        with:
+          name: titanweave-kernel-k15-8-integrated
+          path: |
+            /tmp/titanweave-kernel-k15-8-integrated.zip
+            /tmp/titanweave-kernel-k15-8-integrated.zip.sha256
+          if-no-files-found: error
+          retention-days: 7
