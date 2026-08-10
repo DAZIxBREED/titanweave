@@ -27,4 +27,4 @@ Implemented in this gate:
 - failure propagation when required ForgeAudioD exits before qualification;
 - K15.6 source/serial qualification tools.
 
-The packaging environment can assemble/link userspace but does not provide Rust/Cargo/QEMU. Fedora must compile and runtime-qualify K15.6 before it is frozen and K15.7 begins.
+Fedora/QEMU runtime qualification PASSED on 2026-08-10. K15.6 is frozen and K15.7 — Lock-Free Audio Transport is unlocked.

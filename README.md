@@ -54,9 +54,10 @@ ForgeAudio is governed by the locked 16-gate contract in [`K15_STONE_CONTRACT.md
 | K15.4 | Real HDA Hardware Backend | **FROZEN ✅** |
 | K15.5 | PCM Format Engine | **FROZEN ✅** |
 | K15.6 | ForgeAudioD | **FROZEN ✅** |
-| K15.7–K15.16 | ForgeAudio transport, graph, sync, resampling, routing, recovery and final qualification | **LOCKED** |
+| K15.7 | Lock-Free Audio Transport | **SOURCE-INTEGRATED / RUNTIME PENDING 🧪** |
+| K15.8–K15.16 | ForgeAudio graph, sync, resampling, routing, recovery and final qualification | **LOCKED** |
 
-K15.4 and K15.5 are qualified/frozen. K15.5 passed the canonical PCM format/rate/channel engine and real HDA endpoint binding. K15.6 now adds ForgeAudioD as a real persistent userspace service that owns the HDA device, playback/capture stream objects, bounded buffers, clock/event/fence control objects, two-route control metadata, telemetry and recovery/rebuild state. K15.7 remains locked until K15.6 passes.
+K15.4 through K15.6 are qualified/frozen. K15.6 passed the real persistent ForgeAudioD userspace server with HDA ownership, streams, control objects, telemetry, recovery and heartbeat. K15.7 now adds a separate userspace audio client plus bounded atomic SPSC playback/capture rings and bidirectional command queues with generation tracking and dead-client isolation.
 
 ---
 

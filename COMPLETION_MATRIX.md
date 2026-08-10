@@ -71,4 +71,7 @@ Qualified/frozen. Fedora/QEMU passed canonical PCM formats, twelve HDA rates, in
 
 
 ## K15.6 — ForgeAudioD
-Source-integrated; runtime qualification pending. Locked gate 6 of 16. Real persistent userspace audio-server ownership, HDA device/endpoint acquisition, prepared playback/capture streams, bounded buffer/clock/event/fence ownership, two-route graph-control metadata, recovery/rebuild handling, singleton kernel registration, ownership cross-validation and persistent heartbeat are implemented. K15.7 remains blocked until this gate passes.
+Qualified/frozen. Fedora/QEMU passed real persistent userspace audio-server ownership, HDA device/endpoint acquisition, prepared playback/capture streams, bounded buffer/clock/event/fence ownership, two-route control metadata, recovery/rebuild handling, singleton kernel registration, ownership cross-validation and persistent heartbeat.
+
+## K15.7 — Lock-Free Audio Transport
+Source-integrated; runtime qualification pending. Locked gate 7 of 16. Real bounded application/server SPSC audio rings and bidirectional command queues, sequence/generation tracking, full/empty backpressure, a separate userspace audio client, three-wrap PCM round-trip, dead-client generation invalidation, ring wipe/reap, stale-generation rejection and surviving ForgeAudioD server are implemented. K15.8 remains blocked until this gate passes.

@@ -386,3 +386,66 @@ const _: [(); 48] = [(); core::mem::size_of::<AudioEventRecord>()];
 const _: [(); 40] = [(); core::mem::size_of::<AudioFenceInfo>()];
 const _: [(); 56] = [(); core::mem::size_of::<AudioControlRequest>()];
 const _: [(); 64] = [(); core::mem::size_of::<AudioControlResponse>()];
+
+// K15.7 lock-free application/server transport ABI. This is versioned
+// separately from the frozen K15.2 object ABI so FORGEAUDIO_FEATURES_V1 and
+// the K15.2 wire structs remain unchanged.
+pub const FORGEAUDIO_TRANSPORT_ABI_VERSION: u32 = 1;
+pub const AUDIO_TRANSPORT_BLOCK_BYTES: usize = 1024;
+pub const AUDIO_TRANSPORT_RING_SLOTS: usize = 4;
+pub const AUDIO_TRANSPORT_COMMAND_BYTES: usize = 32;
+pub const AUDIO_TRANSPORT_COMMAND_DEPTH: usize = 16;
+pub const AUDIO_TRANSPORT_MAX_SESSIONS: usize = 4;
+
+#[repr(u32)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AudioTransportOp {
+    ClientAttach = 1,
+    ClientPushPlayback = 2,
+    ClientPopCapture = 3,
+    ClientPushCommand = 4,
+    ClientPopCommand = 5,
+    ServerFindActive = 6,
+    ServerPopPlayback = 7,
+    ServerPushCapture = 8,
+    ServerPopCommand = 9,
+    ServerPushCommand = 10,
+    ServerFindDead = 11,
+    ServerReapDead = 12,
+    ServerQualify = 13,
+}
+
+impl AudioTransportOp {
+    #[must_use]
+    pub const fn from_raw(value: u32) -> Option<Self> {
+        match value {
+            1 => Some(Self::ClientAttach),
+            2 => Some(Self::ClientPushPlayback),
+            3 => Some(Self::ClientPopCapture),
+            4 => Some(Self::ClientPushCommand),
+            5 => Some(Self::ClientPopCommand),
+            6 => Some(Self::ServerFindActive),
+            7 => Some(Self::ServerPopPlayback),
+            8 => Some(Self::ServerPushCapture),
+            9 => Some(Self::ServerPopCommand),
+            10 => Some(Self::ServerPushCommand),
+            11 => Some(Self::ServerFindDead),
+            12 => Some(Self::ServerReapDead),
+            13 => Some(Self::ServerQualify),
+            _ => None,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct AudioTransportCommand {
+    pub sequence: u64,
+    pub generation: u32,
+    pub opcode: u32,
+    pub arg0: u64,
+    pub arg1: u64,
+}
+
+const _: [(); AUDIO_TRANSPORT_COMMAND_BYTES] =
+    [(); core::mem::size_of::<AudioTransportCommand>()];

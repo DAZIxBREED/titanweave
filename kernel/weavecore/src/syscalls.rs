@@ -4,9 +4,10 @@ use crate::ipc::MAX_MESSAGE_BYTES;
 use crate::user::UserTrapFrame;
 use titanweave_forgeaudio_abi::{
     AudioAbiInfo, AudioControlOp, AudioControlRequest, AudioControlResponse, AudioDeviceInfo,
-    AudioEndpointInfo, AudioObjectKind, AudioStreamConfig, FORGEAUDIO_ABI_VERSION,
+    AudioEndpointInfo, AudioObjectKind, AudioStreamConfig, AudioTransportOp,
+    AUDIO_TRANSPORT_BLOCK_BYTES, AUDIO_TRANSPORT_COMMAND_BYTES, FORGEAUDIO_ABI_VERSION,
 };
-use crate::{display, forgeaudio, gpu_runtime, native_gpu, native_gpu_binding, native_gpu_c2, native_gpu_c3, native_gpu_c4, native_gpu_c5, native_gpu_c6, native_gpu_c7, native_gpu_c8, native_gpu_c9, native_gpu_c10, native_gpu_c11, native_gpu_c12, native_gpu_c13, native_gpu_c14, native_gpu_c15, native_gpu_c16, native_gpu_c17, native_gpu_c18, native_gpu_c19, native_gpu_c20, native_gpu_c21, native_gpu_c22, native_gpu_c23, native_gpu_c24, native_gpu_c25, native_gpu_c26, native_gpu_c27, native_gpu_c28, native_gpu_c29, native_gpu_c30, native_gpu_c31, native_gpu_c32, namespace, percpu, process, serial, shared_memory, vfs};
+use crate::{display, forgeaudio, forgeaudio_transport, gpu_runtime, native_gpu, native_gpu_binding, native_gpu_c2, native_gpu_c3, native_gpu_c4, native_gpu_c5, native_gpu_c6, native_gpu_c7, native_gpu_c8, native_gpu_c9, native_gpu_c10, native_gpu_c11, native_gpu_c12, native_gpu_c13, native_gpu_c14, native_gpu_c15, native_gpu_c16, native_gpu_c17, native_gpu_c18, native_gpu_c19, native_gpu_c20, native_gpu_c21, native_gpu_c22, native_gpu_c23, native_gpu_c24, native_gpu_c25, native_gpu_c26, native_gpu_c27, native_gpu_c28, native_gpu_c29, native_gpu_c30, native_gpu_c31, native_gpu_c32, namespace, percpu, process, serial, shared_memory, vfs};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn weave_syscall_dispatch(frame: *mut UserTrapFrame) -> *mut UserTrapFrame {
@@ -304,6 +305,10 @@ pub extern "C" fn weave_syscall_dispatch(frame: *mut UserTrapFrame) -> *mut User
             unsafe { (*frame).rax = syscall_audio_server_control(a1, a2, a3, a4, a5) };
             frame
         }
+        SYS_AUDIO_TRANSPORT_CONTROL => {
+            unsafe { (*frame).rax = syscall_audio_transport_control(a1, a2, a3, a4, a5) };
+            frame
+        }
         SYS_GPU_RECOVER => {
             let authorized = matches!(
                 process::current_lookup(a1 as Handle, RIGHT_WRITE),
@@ -472,6 +477,164 @@ fn syscall_system_query(query: u64) -> u64 {
 }
 
 
+
+
+fn transport_error(error: forgeaudio_transport::TransportError) -> u64 {
+    use forgeaudio_transport::TransportError;
+    encode_error(match error {
+        TransportError::NotFound => ERROR_NOT_FOUND,
+        TransportError::NotReady => ERROR_NOT_READY,
+        TransportError::Busy => ERROR_BUSY,
+        TransportError::Full | TransportError::Empty => ERROR_WOULD_BLOCK,
+        TransportError::StaleGeneration | TransportError::Invalid => ERROR_INVALID_STATE,
+        TransportError::AccessDenied => ERROR_ACCESS_DENIED,
+    })
+}
+
+fn syscall_audio_transport_control(
+    operation_raw: u64,
+    arg0: u64,
+    arg1: u64,
+    arg2: u64,
+    arg3: u64,
+) -> u64 {
+    let Some(operation) = AudioTransportOp::from_raw(operation_raw as u32) else {
+        return encode_error(ERROR_INVALID_ARGUMENT);
+    };
+    let pid = process::current_pid();
+    let role = process::current_service_role();
+    let pack = |session: u32, generation: u32| -> u64 {
+        u64::from(session) | (u64::from(generation) << 32)
+    };
+
+    match operation {
+        AudioTransportOp::ClientAttach => {
+            if role != crate::service::ServiceRole::AudioClient || arg0 != 0 || arg1 != 0 || arg2 != 0 || arg3 != 0 {
+                return encode_error(ERROR_ACCESS_DENIED);
+            }
+            let Some(server_pid) = process::forgeaudiod_server_pid_if_ready() else {
+                return encode_error(ERROR_NOT_READY);
+            };
+            forgeaudio_transport::client_attach(pid, server_pid)
+                .map(|(session, generation)| pack(session, generation))
+                .unwrap_or_else(transport_error)
+        }
+        AudioTransportOp::ServerFindActive | AudioTransportOp::ServerFindDead => {
+            if role != crate::service::ServiceRole::Audio || arg0 != 0 || arg1 != 0 || arg2 != 0 || arg3 != 0 {
+                return encode_error(ERROR_ACCESS_DENIED);
+            }
+            let result = if operation == AudioTransportOp::ServerFindActive {
+                forgeaudio_transport::find_active_for_server(pid)
+            } else {
+                forgeaudio_transport::find_dead_for_server(pid)
+            };
+            result.map(|(session, generation)| pack(session, generation)).unwrap_or_else(transport_error)
+        }
+        AudioTransportOp::ServerReapDead => {
+            if role != crate::service::ServiceRole::Audio || arg2 != 0 || arg3 != 0 {
+                return encode_error(ERROR_ACCESS_DENIED);
+            }
+            let Ok(session) = u32::try_from(arg0) else { return encode_error(ERROR_INVALID_ARGUMENT); };
+            let Ok(generation) = u32::try_from(arg1) else { return encode_error(ERROR_INVALID_ARGUMENT); };
+            forgeaudio_transport::reap_dead(session, generation, pid).map(|()| pack(session, generation)).unwrap_or_else(transport_error)
+        }
+        AudioTransportOp::ServerQualify => {
+            if role != crate::service::ServiceRole::Audio || arg0 != 0 || arg1 != 0 || arg2 != 0 || arg3 != 0 {
+                return encode_error(ERROR_ACCESS_DENIED);
+            }
+            match forgeaudio_transport::qualification_snapshot() {
+                Ok(snapshot) => {
+                    if process::note_forgeaudio_transport_ready().is_err() {
+                        return encode_error(ERROR_INVALID_STATE);
+                    }
+                    serial::println(format_args!(
+                        "[K15OK] K15.7 ForgeAudio lock-free transport qualified: playback_blocks={} capture_blocks={} command_roundtrips={} playback_wraps={} capture_wraps={} command_wraps={} full_hits={} empty_hits={} stale_rejections={} dead_clients={} generation_advances={} lock_free=true bounded=true dead_client_isolation=true",
+                        snapshot.playback_blocks, snapshot.capture_blocks, snapshot.command_roundtrips,
+                        snapshot.playback_wraps, snapshot.capture_wraps, snapshot.command_wraps,
+                        snapshot.data_full_hits + snapshot.command_full_hits,
+                        snapshot.data_empty_hits + snapshot.command_empty_hits,
+                        snapshot.stale_rejections, snapshot.dead_clients, snapshot.generation_advances
+                    ));
+                    serial::println(format_args!(
+                        "[K15LR] ForgeAudio lock-free transport ready: version=1 block_bytes={} ring_slots={} command_depth={} SPSC=true atomics=true allocation_free=true server_persistent=true",
+                        AUDIO_TRANSPORT_BLOCK_BYTES, titanweave_forgeaudio_abi::AUDIO_TRANSPORT_RING_SLOTS,
+                        titanweave_forgeaudio_abi::AUDIO_TRANSPORT_COMMAND_DEPTH
+                    ));
+                    1
+                }
+                Err(error) => transport_error(error),
+            }
+        }
+        AudioTransportOp::ClientPushPlayback | AudioTransportOp::ClientPopCapture
+        | AudioTransportOp::ClientPushCommand | AudioTransportOp::ClientPopCommand
+        | AudioTransportOp::ServerPopPlayback | AudioTransportOp::ServerPushCapture
+        | AudioTransportOp::ServerPopCommand | AudioTransportOp::ServerPushCommand => {
+            let Ok(session) = u32::try_from(arg0) else { return encode_error(ERROR_INVALID_ARGUMENT); };
+            let Ok(generation) = u32::try_from(arg1) else { return encode_error(ERROR_INVALID_ARGUMENT); };
+            let address = arg2;
+            let length = arg3 as usize;
+            match operation {
+                AudioTransportOp::ClientPushPlayback => {
+                    if role != crate::service::ServiceRole::AudioClient || length != AUDIO_TRANSPORT_BLOCK_BYTES { return encode_error(ERROR_INVALID_ARGUMENT); }
+                    let mut block = [0u8; AUDIO_TRANSPORT_BLOCK_BYTES];
+                    if process::current_copy_from_user(address, &mut block).is_err() { return encode_error(ERROR_ACCESS_DENIED); }
+                    forgeaudio_transport::client_push_playback(session, generation, pid, &block).unwrap_or_else(transport_error)
+                }
+                AudioTransportOp::ClientPopCapture => {
+                    if role != crate::service::ServiceRole::AudioClient || length != AUDIO_TRANSPORT_BLOCK_BYTES { return encode_error(ERROR_INVALID_ARGUMENT); }
+                    let mut block = [0u8; AUDIO_TRANSPORT_BLOCK_BYTES];
+                    match forgeaudio_transport::client_pop_capture(session, generation, pid, &mut block) {
+                        Ok(sequence) => if process::current_copy_to_user(address, &block).is_ok() { sequence } else { encode_error(ERROR_ACCESS_DENIED) },
+                        Err(error) => transport_error(error),
+                    }
+                }
+                AudioTransportOp::ClientPushCommand => {
+                    if role != crate::service::ServiceRole::AudioClient || length != AUDIO_TRANSPORT_COMMAND_BYTES { return encode_error(ERROR_INVALID_ARGUMENT); }
+                    let mut command = [0u8; AUDIO_TRANSPORT_COMMAND_BYTES];
+                    if process::current_copy_from_user(address, &mut command).is_err() { return encode_error(ERROR_ACCESS_DENIED); }
+                    forgeaudio_transport::client_push_command(session, generation, pid, &command).unwrap_or_else(transport_error)
+                }
+                AudioTransportOp::ClientPopCommand => {
+                    if role != crate::service::ServiceRole::AudioClient || length != AUDIO_TRANSPORT_COMMAND_BYTES { return encode_error(ERROR_INVALID_ARGUMENT); }
+                    let mut command = [0u8; AUDIO_TRANSPORT_COMMAND_BYTES];
+                    match forgeaudio_transport::client_pop_command(session, generation, pid, &mut command) {
+                        Ok(sequence) => if process::current_copy_to_user(address, &command).is_ok() { sequence } else { encode_error(ERROR_ACCESS_DENIED) },
+                        Err(error) => transport_error(error),
+                    }
+                }
+                AudioTransportOp::ServerPopPlayback => {
+                    if role != crate::service::ServiceRole::Audio || length != AUDIO_TRANSPORT_BLOCK_BYTES { return encode_error(ERROR_INVALID_ARGUMENT); }
+                    let mut block = [0u8; AUDIO_TRANSPORT_BLOCK_BYTES];
+                    match forgeaudio_transport::server_pop_playback(session, generation, pid, &mut block) {
+                        Ok(sequence) => if process::current_copy_to_user(address, &block).is_ok() { sequence } else { encode_error(ERROR_ACCESS_DENIED) },
+                        Err(error) => transport_error(error),
+                    }
+                }
+                AudioTransportOp::ServerPushCapture => {
+                    if role != crate::service::ServiceRole::Audio || length != AUDIO_TRANSPORT_BLOCK_BYTES { return encode_error(ERROR_INVALID_ARGUMENT); }
+                    let mut block = [0u8; AUDIO_TRANSPORT_BLOCK_BYTES];
+                    if process::current_copy_from_user(address, &mut block).is_err() { return encode_error(ERROR_ACCESS_DENIED); }
+                    forgeaudio_transport::server_push_capture(session, generation, pid, &block).unwrap_or_else(transport_error)
+                }
+                AudioTransportOp::ServerPopCommand => {
+                    if role != crate::service::ServiceRole::Audio || length != AUDIO_TRANSPORT_COMMAND_BYTES { return encode_error(ERROR_INVALID_ARGUMENT); }
+                    let mut command = [0u8; AUDIO_TRANSPORT_COMMAND_BYTES];
+                    match forgeaudio_transport::server_pop_command(session, generation, pid, &mut command) {
+                        Ok(sequence) => if process::current_copy_to_user(address, &command).is_ok() { sequence } else { encode_error(ERROR_ACCESS_DENIED) },
+                        Err(error) => transport_error(error),
+                    }
+                }
+                AudioTransportOp::ServerPushCommand => {
+                    if role != crate::service::ServiceRole::Audio || length != AUDIO_TRANSPORT_COMMAND_BYTES { return encode_error(ERROR_INVALID_ARGUMENT); }
+                    let mut command = [0u8; AUDIO_TRANSPORT_COMMAND_BYTES];
+                    if process::current_copy_from_user(address, &mut command).is_err() { return encode_error(ERROR_ACCESS_DENIED); }
+                    forgeaudio_transport::server_push_command(session, generation, pid, &command).unwrap_or_else(transport_error)
+                }
+                _ => encode_error(ERROR_INVALID_ARGUMENT),
+            }
+        }
+    }
+}
 
 fn syscall_audio_server_control(
     operation: u64,

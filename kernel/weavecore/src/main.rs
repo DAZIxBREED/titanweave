@@ -9,6 +9,7 @@ mod forgeaudio;
 mod forgeaudio_dma;
 mod forgeaudio_hda;
 mod forgeaudio_pcm;
+mod forgeaudio_transport;
 mod gpu_topology;
 mod gpu_memory;
 mod gpu_queue;

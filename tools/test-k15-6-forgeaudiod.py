@@ -24,11 +24,11 @@ current = (root / 'CURRENT_STATUS.md').read_text()
 assert '6. **K15.6 — ForgeAudioD**' in stone
 assert 'Status: **QUALIFIED / FROZEN**' in k155_status
 assert (root / 'K15_5_RUNTIME_QUALIFICATION.md').is_file()
-assert 'Status: **SOURCE-INTEGRATED / RUNTIME QUALIFICATION PENDING**' in status
-assert 'K15.6 ForgeAudioD: SOURCE-INTEGRATED / RUNTIME QUALIFICATION PENDING' in current
+assert 'Status: **QUALIFIED / FROZEN**' in status
+assert 'K15.6 ForgeAudioD: QUALIFIED / FROZEN' in current
 
-# Real ninth boot service, before shell qualification can finish.
-for token in ['Audio,', 'SERVICE_SPECS: [ServiceSpec; 9]', 'AUDIOD.ELF', 'process_name: b"forgeaudiod"', 'ServiceRole::Audio']:
+# Real persistent audio service remains before shell; K15.7 adds one client service.
+for token in ['Audio,', 'SERVICE_SPECS: [ServiceSpec; 10]', 'AUDIOD.ELF', 'process_name: b"forgeaudiod"', 'ServiceRole::Audio']:
     assert token in service, token
 assert service.index('AUDIOD.ELF') < service.index('SHELL.ELF')
 for token in ['forgeaudiod', 'AUDIOD']:
@@ -104,8 +104,8 @@ assert 'TW_EXIT 0' not in daemon  # no success-by-exit shortcut
 for literal in re.findall(r'\.ascii "([^"]*)"', daemon):
     assert len(literal.encode()) <= 256, (len(literal.encode()), literal)
 
-# K15.6 is control-plane only; later locked gates stay absent.
-for forbidden in ['LockFreeAudioRing', 'ClientAudioRing', 'GraphEngine', 'MixerNode', 'Resampler', 'SampleAccurateSwitch']:
+# K15.6 remains control-plane only even though K15.7 now extends the daemon with transport control.
+for forbidden in ['GraphEngine', 'MixerNode', 'Resampler', 'SampleAccurateSwitch']:
     assert forbidden not in daemon, forbidden
     assert forbidden not in syscalls, forbidden
 assert not (root / 'kernel/weavecore/src/forgeaudio_graph.rs').exists()

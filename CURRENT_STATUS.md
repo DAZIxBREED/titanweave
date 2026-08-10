@@ -10,23 +10,25 @@
 - **K15.3 ForgeAudio Audio DMA Transport: QUALIFIED / FROZEN ✅**
 - **K15.4 Real HDA Hardware Backend: QUALIFIED / FROZEN ✅**
 - **K15.5 PCM Format Engine: QUALIFIED / FROZEN ✅**
-- **K15.6 ForgeAudioD: QUALIFIED / FROZEN 🧪**
+- **K15.6 ForgeAudioD: QUALIFIED / FROZEN ✅**
+- **K15.7 Lock-Free Audio Transport: SOURCE-INTEGRATED / RUNTIME QUALIFICATION PENDING 🧪**
 
-## Active K15.6 qualification
+## Active K15.7 qualification
 
-K15.6 consumes frozen K15.5 and introduces the real persistent ForgeAudioD userspace audio server:
+K15.7 consumes frozen K15.6 and adds the bounded application/server transport layer:
 
-- singleton audio-service registration through syscall 47;
-- real HDA device and playback/capture endpoint enumeration;
-- server-owned prepared playback and capture streams using the frozen K15.5 48 kHz/S16/stereo baseline;
-- two bounded 4096-byte server buffers;
-- owned audio clock, event queue and fence objects;
-- bounded two-route control-plane metadata with graph generation tracking;
-- real recovery proof by rejecting an illegal start, closing the bad stream, rebuilding/configuring/preparing a replacement, and releasing it cleanly;
-- kernel cross-validation of the daemon's actual live audio objects rather than trusting userspace counters;
-- a post-yield heartbeat proving ForgeAudioD remains persistent under the K6 scheduler.
+- a real `audio-client` userspace process alongside persistent ForgeAudioD;
+- fixed four-slot / 1024-byte SPSC playback and capture rings;
+- fixed depth-16 bidirectional command queues;
+- atomic acquire/release producer/consumer sequence ownership with no mutex or allocation on the queue hot path;
+- explicit full and empty backpressure;
+- three complete PCM ring wraps / twelve blocks in each direction with byte-for-byte verification;
+- exact transport generation tracking;
+- automatic generation advance and ring wipe when the client exits;
+- stale-generation rejection and server-authorized dead-session reap;
+- ForgeAudioD persistence and heartbeat after dead-client isolation.
 
-K15.6 does not implement K15.7 lock-free client transport, K15.8 DSP graph nodes, mixing or resampling.
+K15.7 does not implement K15.8 DSP graph nodes, mixing, gain, or resampling.
 
 ## ForgeAudio stone contract
 
@@ -36,8 +38,8 @@ K15.2   ForgeAudio Kernel ABI                      FROZEN ✅
 K15.3   Audio DMA Transport                        FROZEN ✅
 K15.4   Real HDA Hardware Backend                  FROZEN ✅
 K15.5   PCM Format Engine                          FROZEN ✅
-K15.6   ForgeAudioD                                TEST NOW 🧪
-K15.7   Lock-Free Audio Transport                  LOCKED
+K15.6   ForgeAudioD                                FROZEN ✅
+K15.7   Lock-Free Audio Transport                  TEST NOW 🧪
 K15.8   ForgeAudio Graph Engine                    LOCKED
 K15.9   Sample-Accurate Graph Switching            LOCKED
 K15.10  Clock & Synchronization Engine             LOCKED
@@ -51,6 +53,6 @@ K15.16  Full Production Qualification + Freeze     LOCKED
 
 ## Qualification boundary
 
-K15.4's QEMU HDA evidence remains hardware-model evidence, not physical motherboard/audio-codec silicon evidence. K15.6 must bind ForgeAudioD to the real HDA device/endpoints created by frozen K15.4, use the frozen K15.5 PCM configuration path, and prove persistent userspace ownership; it may not fabricate a device, object count, recovery, or heartbeat to qualify.
+K15.4's QEMU HDA evidence remains hardware-model evidence, not physical motherboard/audio-codec silicon evidence. K15.7 must use the real frozen K15.6 ForgeAudioD process and a separate userspace audio client; it may not qualify through a daemon-local fake ring, fabricated client, lock-backed hot path, or fake dead-client event.
 
 See `README.md`, `PROJECT_VISION.md`, `K15_STATUS.md`, and `K15_STONE_CONTRACT.md`.

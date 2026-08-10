@@ -263,10 +263,263 @@ endpoint_scan_done:
     jne fatal
     TW_WRITE TW_CONSOLE_HANDLE, heartbeat_msg, HEARTBEAT_MSG_LEN
 
+    # K15.7: own the server side of the bounded lock-free application
+    # transport. This begins only after the frozen K15.6 heartbeat proof.
+    call k15_7_transport_server
+
 service_loop:
     mov rax, TW_SYS_YIELD
     int 0x80
     jmp service_loop
+
+
+# K15.7 server-side transport qualification. The real application service is
+# a separate process and owns the producer/consumer peer endpoints.
+k15_7_transport_server:
+find_transport_active:
+    mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
+    mov rdi, TW_AUDIO_TRANSPORT_SERVER_FIND_ACTIVE
+    xor rsi, rsi
+    xor rdx, rdx
+    xor r10, r10
+    xor r8, r8
+    int 0x80
+    cmp rax, ERROR_WOULD_BLOCK
+    jne transport_active_found
+    mov rax, TW_SYS_YIELD
+    int 0x80
+    jmp find_transport_active
+transport_active_found:
+    test rax, rax
+    js fatal
+    mov dword ptr [rip + transport_session_id], eax
+    shr rax, 32
+    mov dword ptr [rip + transport_generation], eax
+    cmp dword ptr [rip + transport_session_id], 1
+    jne fatal
+    cmp dword ptr [rip + transport_generation], 1
+    jne fatal
+    TW_WRITE TW_CONSOLE_HANDLE, transport_active_msg, TRANSPORT_ACTIVE_MSG_LEN
+
+    # Consume all 16 client commands and return 16 acknowledgements. Both
+    # queues are SPSC and bounded to depth 16.
+    mov r12d, 1
+transport_command_loop:
+    cmp r12d, TW_AUDIO_TRANSPORT_COMMAND_DEPTH + 1
+    jae transport_command_empty_probe
+transport_command_retry:
+    mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
+    mov rdi, TW_AUDIO_TRANSPORT_SERVER_POP_COMMAND
+    mov esi, dword ptr [rip + transport_session_id]
+    mov edx, dword ptr [rip + transport_generation]
+    lea r10, [rip + transport_command]
+    mov r8, TW_AUDIO_TRANSPORT_COMMAND_BYTES
+    int 0x80
+    cmp rax, ERROR_WOULD_BLOCK
+    jne transport_command_have
+    mov rax, TW_SYS_YIELD
+    int 0x80
+    jmp transport_command_retry
+transport_command_have:
+    cmp rax, r12
+    jne fatal
+    cmp qword ptr [rip + transport_command + 0], r12
+    jne fatal
+    mov eax, dword ptr [rip + transport_generation]
+    cmp dword ptr [rip + transport_command + 8], eax
+    jne fatal
+    cmp dword ptr [rip + transport_command + 12], 1
+    jne fatal
+    mov dword ptr [rip + transport_command + 12], 2
+    mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
+    mov rdi, TW_AUDIO_TRANSPORT_SERVER_PUSH_COMMAND
+    mov esi, dword ptr [rip + transport_session_id]
+    mov edx, dword ptr [rip + transport_generation]
+    lea r10, [rip + transport_command]
+    mov r8, TW_AUDIO_TRANSPORT_COMMAND_BYTES
+    int 0x80
+    cmp rax, r12
+    jne fatal
+    inc r12d
+    jmp transport_command_loop
+
+transport_command_empty_probe:
+    # The failed client entry 17 means the input queue is now exactly empty.
+    mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
+    mov rdi, TW_AUDIO_TRANSPORT_SERVER_POP_COMMAND
+    mov esi, dword ptr [rip + transport_session_id]
+    mov edx, dword ptr [rip + transport_generation]
+    lea r10, [rip + transport_command]
+    mov r8, TW_AUDIO_TRANSPORT_COMMAND_BYTES
+    int 0x80
+    cmp rax, ERROR_WOULD_BLOCK
+    jne fatal
+    # The server->client ACK ring has 16 entries and must reject entry 17.
+    mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
+    mov rdi, TW_AUDIO_TRANSPORT_SERVER_PUSH_COMMAND
+    mov esi, dword ptr [rip + transport_session_id]
+    mov edx, dword ptr [rip + transport_generation]
+    lea r10, [rip + transport_command]
+    mov r8, TW_AUDIO_TRANSPORT_COMMAND_BYTES
+    int 0x80
+    cmp rax, ERROR_WOULD_BLOCK
+    jne fatal
+    TW_WRITE TW_CONSOLE_HANDLE, transport_command_msg, TRANSPORT_COMMAND_MSG_LEN
+    mov rax, TW_SYS_YIELD
+    int 0x80
+
+    # Three four-slot PCM laps. ForgeAudioD does no DSP in K15.7; it verifies
+    # each application block and returns the identical bytes on capture.
+    xor r13d, r13d
+transport_audio_batch:
+    cmp r13d, 3
+    jae transport_wait_dead
+    xor r14d, r14d
+transport_audio_pop_loop:
+    cmp r14d, TW_AUDIO_TRANSPORT_RING_SLOTS
+    jae transport_audio_boundary
+    mov eax, r13d
+    imul eax, TW_AUDIO_TRANSPORT_RING_SLOTS
+    add eax, r14d
+    inc eax
+    mov dword ptr [rip + transport_block_id], eax
+transport_audio_pop_retry:
+    mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
+    mov rdi, TW_AUDIO_TRANSPORT_SERVER_POP_PLAYBACK
+    mov esi, dword ptr [rip + transport_session_id]
+    mov edx, dword ptr [rip + transport_generation]
+    lea r10, [rip + transport_block]
+    mov r8, TW_AUDIO_TRANSPORT_BLOCK_BYTES
+    int 0x80
+    cmp rax, ERROR_WOULD_BLOCK
+    jne transport_audio_pop_have
+    mov rax, TW_SYS_YIELD
+    int 0x80
+    jmp transport_audio_pop_retry
+transport_audio_pop_have:
+    mov ecx, dword ptr [rip + transport_block_id]
+    cmp rax, rcx
+    jne fatal
+    mov eax, dword ptr [rip + transport_block_id]
+    lea rdi, [rip + transport_block]
+    mov ecx, TW_AUDIO_TRANSPORT_BLOCK_BYTES
+    repe scasb
+    jne fatal
+    mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
+    mov rdi, TW_AUDIO_TRANSPORT_SERVER_PUSH_CAPTURE
+    mov esi, dword ptr [rip + transport_session_id]
+    mov edx, dword ptr [rip + transport_generation]
+    lea r10, [rip + transport_block]
+    mov r8, TW_AUDIO_TRANSPORT_BLOCK_BYTES
+    int 0x80
+    mov ecx, dword ptr [rip + transport_block_id]
+    cmp rax, rcx
+    jne fatal
+    inc r14d
+    jmp transport_audio_pop_loop
+
+transport_audio_boundary:
+    # Playback is empty and capture is full until the client runs again.
+    mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
+    mov rdi, TW_AUDIO_TRANSPORT_SERVER_POP_PLAYBACK
+    mov esi, dword ptr [rip + transport_session_id]
+    mov edx, dword ptr [rip + transport_generation]
+    lea r10, [rip + transport_block]
+    mov r8, TW_AUDIO_TRANSPORT_BLOCK_BYTES
+    int 0x80
+    cmp rax, ERROR_WOULD_BLOCK
+    jne fatal
+    mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
+    mov rdi, TW_AUDIO_TRANSPORT_SERVER_PUSH_CAPTURE
+    mov esi, dword ptr [rip + transport_session_id]
+    mov edx, dword ptr [rip + transport_generation]
+    lea r10, [rip + transport_block]
+    mov r8, TW_AUDIO_TRANSPORT_BLOCK_BYTES
+    int 0x80
+    cmp rax, ERROR_WOULD_BLOCK
+    jne fatal
+    inc r13d
+    mov rax, TW_SYS_YIELD
+    int 0x80
+    jmp transport_audio_batch
+
+transport_wait_dead:
+    TW_WRITE TW_CONSOLE_HANDLE, transport_audio_msg, TRANSPORT_AUDIO_MSG_LEN
+find_transport_dead:
+    mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
+    mov rdi, TW_AUDIO_TRANSPORT_SERVER_FIND_DEAD
+    xor rsi, rsi
+    xor rdx, rdx
+    xor r10, r10
+    xor r8, r8
+    int 0x80
+    cmp rax, ERROR_WOULD_BLOCK
+    jne transport_dead_found
+    mov rax, TW_SYS_YIELD
+    int 0x80
+    jmp find_transport_dead
+transport_dead_found:
+    test rax, rax
+    js fatal
+    mov ecx, eax
+    cmp ecx, dword ptr [rip + transport_session_id]
+    jne fatal
+    shr rax, 32
+    mov dword ptr [rip + transport_new_generation], eax
+    cmp eax, dword ptr [rip + transport_generation]
+    jbe fatal
+
+    # Reaping with generation 1 must be rejected after client exit advanced
+    # the session generation to 2.
+    mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
+    mov rdi, TW_AUDIO_TRANSPORT_SERVER_REAP_DEAD
+    mov esi, dword ptr [rip + transport_session_id]
+    mov edx, dword ptr [rip + transport_generation]
+    xor r10, r10
+    xor r8, r8
+    int 0x80
+    cmp rax, ERROR_INVALID_STATE
+    jne fatal
+
+    # Reap only with the current generation.
+    mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
+    mov rdi, TW_AUDIO_TRANSPORT_SERVER_REAP_DEAD
+    mov esi, dword ptr [rip + transport_session_id]
+    mov edx, dword ptr [rip + transport_new_generation]
+    xor r10, r10
+    xor r8, r8
+    int 0x80
+    test rax, rax
+    js fatal
+    TW_WRITE TW_CONSOLE_HANDLE, transport_dead_msg, TRANSPORT_DEAD_MSG_LEN
+
+    # Prove the same ForgeAudioD process persists beyond dead-client cleanup
+    # before K15.7 is allowed to satisfy K6's final audio requirement.
+    mov rax, TW_SYS_YIELD
+    int 0x80
+    mov rax, TW_SYS_AUDIO_SERVER_CONTROL
+    mov rdi, TW_AUDIO_SERVER_OP_HEARTBEAT
+    mov rsi, 2
+    xor rdx, rdx
+    xor r10, r10
+    xor r8, r8
+    int 0x80
+    cmp rax, 2
+    jne fatal
+    TW_WRITE TW_CONSOLE_HANDLE, transport_heartbeat_msg, TRANSPORT_HEARTBEAT_MSG_LEN
+
+    # Kernel validates aggregate sequence/wrap/full/empty/dead-client counters.
+    mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
+    mov rdi, TW_AUDIO_TRANSPORT_SERVER_QUALIFY
+    xor rsi, rsi
+    xor rdx, rdx
+    xor r10, r10
+    xor r8, r8
+    int 0x80
+    cmp rax, 1
+    jne fatal
+    TW_WRITE TW_CONSOLE_HANDLE, transport_ready_msg, TRANSPORT_READY_MSG_LEN
+    ret
 
 # Open one stream under the already-owned device. Input: RAX endpoint id.
 # Output: EAX stream handle.
@@ -432,6 +685,24 @@ heartbeat_msg:
     .ascii "[USER] [forgeaudiod] K15.6 persistent heartbeat: sequence=1 scheduler_return=true"
 heartbeat_msg_end:
 .equ HEARTBEAT_MSG_LEN, heartbeat_msg_end - heartbeat_msg
+transport_active_msg:
+    .ascii "[USER] [forgeaudiod] K15.7 transport active: session=1 generation=1 SPSC=true lock_free=true"
+.set TRANSPORT_ACTIVE_MSG_LEN, . - transport_active_msg
+transport_command_msg:
+    .ascii "[USER] [forgeaudiod] K15.7 command queues: client_commands=16 server_acks=16 full=true empty=true sequence=true"
+.set TRANSPORT_COMMAND_MSG_LEN, . - transport_command_msg
+transport_audio_msg:
+    .ascii "[USER] [forgeaudiod] K15.7 audio transport: playback_blocks=12 capture_blocks=12 playback_wraps=3 capture_wraps=3 no_DSP=true"
+.set TRANSPORT_AUDIO_MSG_LEN, . - transport_audio_msg
+transport_dead_msg:
+    .ascii "[USER] [forgeaudiod] K15.7 dead-client isolation: old_generation=1 new_generation=2 stale_rejected=true reaped=true server_persistent=true"
+.set TRANSPORT_DEAD_MSG_LEN, . - transport_dead_msg
+transport_ready_msg:
+    .ascii "[USER] [forgeaudiod] K15.7 lock-free transport ready: bounded=true atomics=true allocation_free=true dead_client_isolation=true"
+.set TRANSPORT_READY_MSG_LEN, . - transport_ready_msg
+transport_heartbeat_msg:
+    .ascii "[USER] [forgeaudiod] K15.7 post-isolation heartbeat: sequence=2 server_alive=true"
+.set TRANSPORT_HEARTBEAT_MSG_LEN, . - transport_heartbeat_msg
 dormant_msg:
     .ascii "[USER] [forgeaudiod] no audio hardware registered; dormant service retained for pre-HDA qualification"
 dormant_msg_end:
@@ -442,6 +713,15 @@ fail_msg_end:
 .equ FAIL_MSG_LEN, fail_msg_end - fail_msg
 
 .section .bss
+.align 16
+transport_session_id: .skip 4
+transport_generation: .skip 4
+transport_new_generation: .skip 4
+transport_block_id: .skip 4
+.align 16
+transport_command: .skip TW_AUDIO_TRANSPORT_COMMAND_BYTES
+.align 64
+transport_block: .skip TW_AUDIO_TRANSPORT_BLOCK_BYTES
 .align 16
 abi_info: .zero AUDIO_ABI_INFO_SIZE
 device_info: .zero AUDIO_DEVICE_INFO_SIZE

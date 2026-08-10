@@ -95,6 +95,8 @@ struct ProcessRuntime {
     forgeaudiod_graph_generation: u32,
     forgeaudiod_recovery_count: u32,
     forgeaudiod_heartbeat_sequence: u64,
+    forgeaudio_transport_ready: bool,
+    forgeaudio_transport_dead_isolated: bool,
     allocator: *mut FrameAllocator<'static>,
 }
 
@@ -123,6 +125,8 @@ impl ProcessRuntime {
             forgeaudiod_graph_generation: 0,
             forgeaudiod_recovery_count: 0,
             forgeaudiod_heartbeat_sequence: 0,
+            forgeaudio_transport_ready: false,
+            forgeaudio_transport_dead_isolated: false,
             allocator: core::ptr::null_mut(),
         }
     }
@@ -169,6 +173,8 @@ pub fn launch_user_services(
             forgeaudiod_graph_generation: 0,
             forgeaudiod_recovery_count: 0,
             forgeaudiod_heartbeat_sequence: 0,
+            forgeaudio_transport_ready: false,
+            forgeaudio_transport_dead_isolated: false,
             allocator: (allocator as *mut FrameAllocator<'_>).cast::<FrameAllocator<'static>>(),
         };
     }
@@ -200,7 +206,7 @@ pub fn launch_user_services(
     }
 
     serial::println(format_args!(
-        "[INIT] Loaded init, logging, console, display, archive, trust, driver, ForgeAudioD, and shell services from C:"
+        "[INIT] Loaded init, logging, console, display, archive, trust, driver, ForgeAudioD, audio-client, and shell services from C:"
     ));
     serial::println(format_args!(
         "[IPC ] K5 capability channel retained as object={}",
@@ -265,7 +271,7 @@ fn create_process(
                 RIGHT_WRITE,
             )?;
         }
-        ServiceRole::Logging | ServiceRole::Console | ServiceRole::Shell | ServiceRole::Archive | ServiceRole::Trust | ServiceRole::DriverHost | ServiceRole::Audio => {
+        ServiceRole::Logging | ServiceRole::Console | ServiceRole::Shell | ServiceRole::Archive | ServiceRole::Trust | ServiceRole::DriverHost | ServiceRole::Audio | ServiceRole::AudioClient => {
             handles.install(CONSOLE_HANDLE, HandleObject::Console, RIGHT_WRITE)?;
         }
     }
@@ -365,6 +371,32 @@ pub fn note_forgeaudiod_heartbeat(sequence: u64) -> Result<(), &'static str> {
     runtime.forgeaudiod_heartbeat_sequence = sequence;
     runtime.forgeaudiod_heartbeat = true;
     serial::println(format_args!("[K15D] ForgeAudioD heartbeat: pid={} sequence={} persistent=true", pid, sequence));
+    Ok(())
+}
+
+
+#[must_use]
+pub fn forgeaudiod_server_pid_if_ready() -> Option<u64> {
+    let runtime = unsafe { &*RUNTIME.0.get() };
+    if runtime.forgeaudiod_registered && runtime.forgeaudiod_ready && runtime.forgeaudiod_heartbeat && !runtime.forgeaudiod_failed {
+        Some(runtime.forgeaudiod_pid)
+    } else {
+        None
+    }
+}
+
+pub fn note_forgeaudio_transport_ready() -> Result<(), &'static str> {
+    if current_service_role() != ServiceRole::Audio {
+        return Err("K15.7 transport qualification denied for non-audio service");
+    }
+    let pid = current_pid();
+    let runtime = unsafe { &mut *RUNTIME.0.get() };
+    if !runtime.forgeaudiod_registered || runtime.forgeaudiod_pid != pid || !runtime.forgeaudiod_ready || !runtime.forgeaudiod_heartbeat {
+        return Err("K15.7 transport qualification requires persistent ForgeAudioD");
+    }
+    runtime.forgeaudio_transport_ready = true;
+    runtime.forgeaudio_transport_dead_isolated = true;
+    serial::println(format_args!("[K15LF] required lock-free transport + dead-client isolation milestones complete; userspace qualification may close"));
     Ok(())
 }
 
@@ -571,7 +603,8 @@ fn qualification_result() -> Option<u64> {
         return Some(1);
     }
     if !runtime.shell_completed || !runtime.displayd_recovery_acknowledged
-        || (audio_server_required && (!runtime.forgeaudiod_ready || !runtime.forgeaudiod_heartbeat))
+        || (audio_server_required && (!runtime.forgeaudiod_ready || !runtime.forgeaudiod_heartbeat
+            || !runtime.forgeaudio_transport_ready || !runtime.forgeaudio_transport_dead_isolated))
     {
         return None;
     }
@@ -670,6 +703,7 @@ pub fn exit_current(frame: *mut UserTrapFrame, exit_code: u64) -> *mut UserTrapF
     });
     unsafe { (*RUNTIME.0.get()).exited += 1 };
     serial::println(format_args!("[PROC] pid={} exited with code {}", pid, exit_code));
+    crate::forgeaudio_transport::detach_process(pid);
 
     if SERVICE_SPECS[index].role == ServiceRole::Audio && crate::forgeaudio::device_count() != 0 {
         unsafe { (*RUNTIME.0.get()).forgeaudiod_failed = true };
@@ -715,6 +749,7 @@ pub fn fault_current(frame: *mut UserTrapFrame, vector: u64, error_code: u64) ->
         "[PROC] pid={} terminated after user exception vector={} error={:#x}",
         pid, vector, error_code
     ));
+    crate::forgeaudio_transport::detach_process(pid);
     if all_terminal(count) {
         finish_runtime();
     }

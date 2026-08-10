@@ -49,4 +49,6 @@ K15.5: source-integrated from frozen K15.4. Adds the allocation-free PCM Format 
 
 K15.5: qualified/frozen. Fedora/QEMU passed the PCM Format Engine with four canonical formats, twelve HDA rates, bounded allocation-free interleaved/planar conversion, named channel mapping, exact/nearest rate negotiation, HDA stream-format round trips, K15.3-bounded DMA geometry and real K15.4 HDA endpoint binding.
 
-K15.6: source-integrated from frozen K15.5. Adds real ForgeAudioD userspace device/stream ownership, bounded buffers, clock/event/fence control objects, two-route graph-control metadata, recovery/rebuild handling, syscall-47 singleton/ownership publication, kernel cross-validation and a persistent post-yield heartbeat. Runtime qualification remains pending before K15.7.
+K15.6: qualified/frozen. Fedora/QEMU passed the persistent ForgeAudioD userspace server, real HDA ownership, prepared playback/capture streams, bounded buffers, clock/event/fence objects, two-route control metadata, telemetry, recovery/rebuild handling, syscall-47 ownership validation and post-yield heartbeat.
+
+K15.7: source-integrated from frozen K15.6. Adds syscall 48 and real bounded atomic SPSC playback/capture rings plus bidirectional command queues, a separate userspace audio client, exact sequence/generation ownership, full/empty backpressure, three-wrap data verification, automatic dead-client generation invalidation and ring wipe, stale-generation rejection, dead-session reap and persistent ForgeAudioD survival. Runtime qualification remains pending before K15.8.

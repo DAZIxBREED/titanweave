@@ -40,4 +40,10 @@ Builds on frozen K15.4. Implements allocation-free canonical PCM representation 
 
 **QUALIFIED / FROZEN.**
 
-Builds directly on frozen K15.5. Adds a real persistent `forgeaudiod` userspace service, singleton kernel registration, real HDA device/endpoint ownership, prepared playback/capture streams, bounded server buffers, clock/event/fence ownership, two-route control metadata with generation tracking, userspace recovery/rebuild proof, kernel-validated ownership publication, and a post-yield persistent heartbeat. K15.7 remains locked until K15.6 runtime qualification passes.
+Builds directly on frozen K15.5. Fedora/QEMU passed the real persistent `forgeaudiod` userspace service, singleton kernel registration, HDA device/endpoint ownership, prepared playback/capture streams, bounded buffers, clock/event/fence ownership, two-route control metadata, telemetry, recovery/rebuild proof, kernel ownership cross-validation, and the post-yield heartbeat. K15.6 is frozen.
+
+## K15.7 — Lock-Free Audio Transport
+
+**SOURCE-INTEGRATED / RUNTIME QUALIFICATION PENDING.**
+
+Adds bounded application/server SPSC PCM rings and bidirectional command queues, fixed-capacity atomic sequence tracking, exact generation ownership, explicit full/empty behavior, a real userspace audio client, deterministic three-wrap data round-trip, dead-client generation invalidation, per-session wipe/reap, stale-generation rejection, and persistent ForgeAudioD survival after client death. K15.8 remains locked until K15.7 passes Fedora/QEMU runtime qualification.
