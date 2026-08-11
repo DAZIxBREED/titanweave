@@ -44,6 +44,12 @@ Builds directly on frozen K15.5. Fedora/QEMU passed the real persistent `forgeau
 
 ## K15.7 — Lock-Free Audio Transport
 
+**QUALIFIED / FROZEN.**
+
+Fedora/QEMU passed bounded atomic SPSC PCM rings and bidirectional command queues, exact sequence/generation ownership, depth-16 command round trips, three complete four-slot PCM wraps, byte-exact playback/capture return, dead-client generation invalidation/ring wipe, stale-generation rejection, authorized reap and persistent ForgeAudioD survival after client death.
+
+## K15.8 — ForgeAudio Graph Engine
+
 **SOURCE-INTEGRATED / RUNTIME QUALIFICATION PENDING.**
 
-Adds bounded application/server SPSC PCM rings and bidirectional command queues, fixed-capacity atomic sequence tracking, exact generation ownership, explicit full/empty behavior, a real userspace audio client, deterministic three-wrap data round-trip, dead-client generation invalidation, per-session wipe/reap, stale-generation rejection, and persistent ForgeAudioD survival after client death. K15.8 remains locked until K15.7 passes Fedora/QEMU runtime qualification.
+Builds directly on the user-confirmed qualified K15.7 source tree while preserving the frozen K15.1-K15.7 kernel/ABI/transport baseline byte-for-byte. Implements the operational Input, Output, Gain, Mixer, Splitter, Channel Mapper, Format Converter and Meter nodes inside ForgeAudioD userspace, with deterministic bounded DAG compilation, four verified S16 stereo processing blocks, exact output checks and meter evidence. K15.9 remains locked pending Fedora/QEMU K15.8 qualification.

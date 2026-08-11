@@ -26,8 +26,9 @@ current = (root / 'CURRENT_STATUS.md').read_text()
 assert '7. **K15.7 — Lock-Free Audio Transport**' in stone
 assert 'Status: **QUALIFIED / FROZEN**' in k156
 assert (root / 'K15_6_RUNTIME_QUALIFICATION.md').is_file()
-assert 'Status: **SOURCE-INTEGRATED / RUNTIME QUALIFICATION PENDING**' in status
-assert 'K15.7 Lock-Free Audio Transport: SOURCE-INTEGRATED / RUNTIME QUALIFICATION PENDING' in current
+assert 'Status: **QUALIFIED / FROZEN**' in status
+assert (root / 'K15_7_RUNTIME_QUALIFICATION.md').is_file()
+assert 'K15.7 Lock-Free Audio Transport: QUALIFIED / FROZEN' in current
 
 # Frozen K15.2 object ABI version stays v1; K15.7 has a separate transport ABI.
 assert 'FORGEAUDIO_ABI_VERSION: u32 = 1' in abi_lib

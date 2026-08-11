@@ -52,3 +52,8 @@ K15.5: qualified/frozen. Fedora/QEMU passed the PCM Format Engine with four cano
 K15.6: qualified/frozen. Fedora/QEMU passed the persistent ForgeAudioD userspace server, real HDA ownership, prepared playback/capture streams, bounded buffers, clock/event/fence objects, two-route control metadata, telemetry, recovery/rebuild handling, syscall-47 ownership validation and post-yield heartbeat.
 
 K15.7: source-integrated from frozen K15.6. Adds syscall 48 and real bounded atomic SPSC playback/capture rings plus bidirectional command queues, a separate userspace audio client, exact sequence/generation ownership, full/empty backpressure, three-wrap data verification, automatic dead-client generation invalidation and ring wipe, stale-generation rejection, dead-session reap and persistent ForgeAudioD survival. Runtime qualification remains pending before K15.8.
+
+
+K15.7: qualified/frozen. Fedora/QEMU passed depth-16 command round trips, 12 playback + 12 capture blocks across three four-slot wraps, byte-exact transport verification, dead-client generation advance/ring wipe, stale-generation rejection, authorized reap, persistent ForgeAudioD heartbeat and the K14.C32 intentional halt.
+
+K15.8: source-integrated from the user-confirmed qualified K15.7 tree. The frozen scheduler/kernel/process/syscall/transport/ABI/audio-client baseline is hash-pinned and unchanged. ForgeAudioD userspace now contains the operational eight-node bounded graph engine (Input, Output, Gain, Mixer, Splitter, Channel Mapper, Format Converter, Meter), deterministic topological compile, four-block S16 stereo execution, exact output verification and meter proof. Fedora/QEMU runtime qualification remains pending before K15.9 may begin.
