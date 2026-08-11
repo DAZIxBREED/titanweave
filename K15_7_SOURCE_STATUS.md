@@ -1,8 +1,10 @@
 # Titanweave K15.7 ForgeAudio Lock-Free Audio Transport — Source Status
 
-Status: **SOURCE-INTEGRATED / RUNTIME QUALIFICATION PENDING**
+Status: **QUALIFIED / FROZEN**
 
 Baseline: qualified/frozen K15.6 ForgeAudioD.
+
+Fedora/QEMU runtime qualification subsequently passed; see `K15_7_RUNTIME_QUALIFICATION.md`.
 
 Implemented in this gate:
 
@@ -26,4 +28,4 @@ Implemented in this gate:
 - kernel aggregate qualification counters and K6 closure gating;
 - K15.7 source and serial qualification tools.
 
-K15.8 remains locked until Fedora/QEMU K15.7 runtime qualification passes.
+K15.7 is frozen. K15.8 ForgeAudio Graph Engine is unlocked.

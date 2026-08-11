@@ -508,6 +508,12 @@ transport_dead_found:
     jne fatal
     TW_WRITE TW_CONSOLE_HANDLE, transport_heartbeat_msg, TRANSPORT_HEARTBEAT_MSG_LEN
 
+    # K15.8 runs in ForgeAudioD userspace after every required K15.7 transport
+    # operation has succeeded, but before the kernel is allowed to close the
+    # K15.7 aggregate gate. This preserves the qualified K15.1-K15.7 kernel
+    # binary while proving real graph execution in the owning audio server.
+    call k15_8_graph_qualify
+
     # Kernel validates aggregate sequence/wrap/full/empty/dead-client counters.
     mov rax, TW_SYS_AUDIO_TRANSPORT_CONTROL
     mov rdi, TW_AUDIO_TRANSPORT_SERVER_QUALIFY
@@ -520,6 +526,8 @@ transport_dead_found:
     jne fatal
     TW_WRITE TW_CONSOLE_HANDLE, transport_ready_msg, TRANSPORT_READY_MSG_LEN
     ret
+
+.include "userspace/forgeaudiod/forgeaudio_graph.inc"
 
 # Open one stream under the already-owned device. Input: RAX endpoint id.
 # Output: EAX stream handle.
